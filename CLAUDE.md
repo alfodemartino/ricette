@@ -89,6 +89,12 @@ scritto) si aggiunge come `RecipeEnhancer` e riceve `rawText`: non si tocca il
 resto. Gli errori da mostrare all'utente sono `ImportError`, con un `reason`
 breve e stabile che finisce nel log.
 
+I doppioni si riconoscono con `sourceKey` (`src/lib/import/url.ts`), su
+`sourceUrl` e su `resolvedUrl` (dove porta il link dopo i redirect), tramite
+`findFamilyRecipesFromSource`. Avvisano e chiedono conferma, non bloccano: un
+modo nuovo di importare (da testo, da link condiviso) deve passare dallo
+stesso controllo.
+
 ## Interfaccia
 
 Valgono le regole di finanze. Tailwind v4 senza file di configurazione, temi
@@ -105,6 +111,11 @@ grep -rn "slate-\|emerald-\|orange-\|bg-white\|text-black" src --include=*.tsx
 I componenti condivisi stanno in `src/components/ui.tsx` e si riusano. Le
 azioni rare vanno in un `Menu` (il «…» della ricetta, il menu dell'account),
 non in altri pulsanti nella testata.
+
+L'app si apre in http dalla rete di casa e in HTTPS dal tunnel: quello che il
+browser concede solo in HTTPS (appunti, condivisione nativa, schermo acceso)
+vuole un ripiego in http. Per copiare si usa sempre `copyText`
+(`src/lib/clipboard.ts`), mai `navigator.clipboard` direttamente.
 
 ## Attesa
 
@@ -127,8 +138,10 @@ container il passo è `docker compose run --rm migrate` (`prisma migrate
 deploy`), mai `npm run db:migrate`, che è `prisma migrate dev`.
 
 Ricette e finanze condividono l'LXC ma niente altro: porte diverse (3001 e
-5433), progetti Compose, volumi, utenti e tunnel separati. Una modifica qui
-non deve mai richiedere di toccare finanze.
+5433), progetti Compose, volumi, utenti e tunnel separati. Anche i cookie: il
+browser non distingue le porte, quindi quelli di Auth.js hanno il prefisso
+`ricette.` (`src/lib/auth.ts`) e non vanno riportati ai nomi predefiniti. Una
+modifica qui non deve mai richiedere di toccare finanze.
 
 ## Proposte
 
