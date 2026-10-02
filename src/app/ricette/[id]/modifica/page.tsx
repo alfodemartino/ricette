@@ -26,6 +26,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
         action={saveRecipeAction.bind(null, recipe.id)}
         initial={draftFromRecipe(recipe)}
         existingImageKey={recipe.imageKey}
+        existingImageCredit={recipe.imageCredit}
         tagSuggestions={tags.map((tag) => tag.name)}
         cancelHref={`/ricette/${recipe.id}`}
         submitLabel="Salva modifiche"

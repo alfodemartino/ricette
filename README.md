@@ -46,7 +46,9 @@ copie notturne.
   (`/ricette?q=zucchine&tag=veloce`).
 - **Foto** — una per ricetta, dal telefono o presa dalla fonte importata.
   Ogni immagine viene ruotata, ridotta a 1600 px e salvata in WebP. Le foto si
-  vedono solo dai membri della famiglia.
+  vedono solo dai membri della famiglia. Quella presa dalla fonte porta in
+  basso, in trasparenza, il nome del sito (`ricetteperbimby.it`), finché non
+  la si sostituisce con una foto propria.
 - **Import da link** — vedi [più sotto](#import-da-link).
 - **Aspetto in stile iOS** e **tema chiaro o scuro**, come finanze.
 
@@ -105,6 +107,19 @@ Quando l'import è parziale il form lo dice, e mostra il testo trovato alla
 fonte: con **Incolla elenco** e **Incolla testo** si completa in fretta. I
 siti che respingono i programmi (protezioni anti-bot, login obbligatorio)
 rispondono con un errore, e l'app lo spiega.
+
+La bozza arriva anche con qualche tag già proposto (`src/lib/import/tags.ts`):
+
+- il nome del sito, senza `https://`, `www.` e percorso (`#ricetteperbimby.it`,
+  `#youtube.com`), per ritrovare le ricette di una fonte;
+- `#bimby`, se la fonte nomina il Bimby (titolo, link, parole chiave, testo)
+  o ne usa la notazione («10 sec. vel. 5» insieme a boccale, misurino o
+  antiorario). In quel caso il titolo finisce con «- Bimby», e una menzione
+  che c'era già si sposta in fondo: «Risotto con zucchine Bimby» diventa
+  «Risotto con zucchine - Bimby».
+
+Come tutto il resto della bozza, tag e titolo si cambiano nel form prima di
+salvare.
 
 **Sicurezza.** L'app gira nella rete di casa, accanto al router, a finanze e
 ai database: un link non deve diventare un modo per interrogarli dal server.

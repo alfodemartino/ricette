@@ -97,9 +97,16 @@ describe("draftFromImport", () => {
     ]);
   });
 
-  it("propone il tag bimby se la fonte ne parla", () => {
-    expect(draftFromImport(imported).tags).toEqual([]);
-    expect(draftFromImport({ ...imported, title: "Tiramisù Bimby" }).tags).toEqual(["bimby"]);
+  it("propone il nome del sito come tag e lascia il titolo com'è", () => {
+    const result = draftFromImport(imported);
+    expect(result.tags).toEqual(["ricette.esempio.it"]);
+    expect(result.title).toBe("Tiramisù");
+  });
+
+  it("per una ricetta Bimby propone il tag e sposta il Bimby in fondo al titolo", () => {
+    const result = draftFromImport({ ...imported, title: "Tiramisù Bimby" });
+    expect(result.tags).toEqual(["bimby", "ricette.esempio.it"]);
+    expect(result.title).toBe("Tiramisù - Bimby");
   });
 
   it("una bozza importata e risalvata non perde niente", () => {

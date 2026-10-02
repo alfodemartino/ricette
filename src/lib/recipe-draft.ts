@@ -1,6 +1,6 @@
 import { guessCategory, isCategory, type RecipeCategory } from "@/lib/categories";
 import { parseIngredientLine, parseQuantity, quantityInput, sectionHeading } from "@/lib/ingredients";
-import { suggestedTags } from "@/lib/import/tags";
+import { BIMBY_TAG, bimbyTitle, suggestedTags } from "@/lib/import/tags";
 import type { ImportedRecipe } from "@/lib/import/types";
 import { uniqueTags } from "@/lib/tags";
 
@@ -38,6 +38,8 @@ export type RecipeDraft = {
   /** L'immagine trovata dall'import: si scarica solo quando si salva. */
   importedImageUrl: string;
 };
+
+export const MAX_TITLE_LENGTH = 150;
 
 export const emptyIngredient = (): IngredientRow => ({ kind: "item", quantity: "", unit: "", name: "", note: "" });
 export const emptyStep = (): StepRow => ({ kind: "item", text: "" });
@@ -107,9 +109,13 @@ export function draftFromImport(imported: ImportedRecipe): RecipeDraft {
   }
 
   const category = guessCategory(imported.category) ?? guessCategory(imported.title);
+  const tags = suggestedTags(imported);
+  const title = tags.includes(BIMBY_TAG)
+    ? bimbyTitle(imported.title, MAX_TITLE_LENGTH)
+    : imported.title.slice(0, MAX_TITLE_LENGTH);
 
   return {
-    title: imported.title.slice(0, 150),
+    title,
     description: imported.description ?? "",
     category: category ?? "",
     servings: numberInput(imported.servings),
@@ -118,7 +124,7 @@ export function draftFromImport(imported: ImportedRecipe): RecipeDraft {
     notes: "",
     sourceUrl: imported.sourceUrl,
     sourceKind: imported.sourceKind,
-    tags: suggestedTags(imported),
+    tags,
     ingredients: ingredients.length > 0 ? withHeadings(ingredients, (item) => ingredientRowFromText(item.text)) : [emptyIngredient()],
     steps:
       imported.steps.length > 0
@@ -226,7 +232,9 @@ export class DraftError extends Error {}
 export function draftToData(draft: RecipeDraft): RecipeData {
   const title = draft.title.trim();
   if (!title) throw new DraftError("Dai un titolo alla ricetta.");
-  if (title.length > 150) throw new DraftError("Il titolo è troppo lungo (al massimo 150 caratteri).");
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw new DraftError(`Il titolo è troppo lungo (al massimo ${MAX_TITLE_LENGTH} caratteri).`);
+  }
 
   const ingredients: IngredientData[] = [];
   let section: string | null = null;

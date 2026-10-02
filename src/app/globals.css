@@ -52,6 +52,12 @@
   /* L'arancio di sistema: segna le note e gli avvisi sugli import parziali. */
   --ui-warning: #c93400;
 
+  /*
+   * Sopra una foto: velo scuro e scritta chiara, uguali nei due temi perché
+   * il fondo è la foto, non la pagina. Lo usa la fascia con la fonte.
+   */
+  --ui-scrim: rgb(0 0 0 / 0.5);
+  --ui-on-scrim: rgb(255 255 255 / 0.92);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -120,6 +126,9 @@ html[data-theme="dark"] {
   --color-positive: var(--ui-positive);
   --color-negative: var(--ui-negative);
   --color-warning: var(--ui-warning);
+
+  --color-scrim: var(--ui-scrim);
+  --color-on-scrim: var(--ui-on-scrim);
 
 
   /* I due raggi di iOS: i controlli sono più stretti dei riquadri. */

@@ -316,6 +316,23 @@ export function Badge({ children, className = "" }: { children: ReactNode; class
   );
 }
 
+/**
+ * Il sito da cui arriva una foto importata, in basso sopra la foto: una
+ * fascia che sfuma nel velo scuro, come le didascalie di iOS. Va dentro un
+ * contenitore `relative`. Per chi usa un lettore di schermo la fonte è già
+ * nella scheda «Fonte» della ricetta.
+ */
+export function PhotoCredit({ credit, className = "" }: { credit: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-scrim to-transparent px-3 pt-6 pb-1.5 text-right text-[11px] font-medium text-on-scrim ${className}`}
+    >
+      {credit}
+    </span>
+  );
+}
+
 export function Textarea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`${inputClass} min-h-24 ${props.className ?? ""}`} />;
 }

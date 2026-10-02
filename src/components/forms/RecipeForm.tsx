@@ -3,18 +3,20 @@
 import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "@/components/NavLink";
 import { SubmitButton } from "@/components/SubmitButton";
-import { Alert, buttonClass, Field, inputClass, Input, Select, Textarea } from "@/components/ui";
+import { Alert, buttonClass, Field, inputClass, Input, PhotoCredit, Select, Textarea } from "@/components/ui";
 import { emptyActionState, type ActionState } from "@/lib/action-state";
 import { CATEGORIES } from "@/lib/categories";
 import { COMMON_UNITS, parseIngredientList, quantityInput } from "@/lib/ingredients";
 import {
   emptyIngredient,
   emptyStep,
+  MAX_TITLE_LENGTH,
   stepRowsFromText,
   type IngredientRow,
   type RecipeDraft,
   type StepRow,
 } from "@/lib/recipe-draft";
+import { siteName } from "@/lib/site";
 import { cleanTagName, tagKey } from "@/lib/tags";
 
 /**
@@ -425,7 +427,17 @@ function TagsEditor({ tags, setTags, suggestions }: { tags: string[]; setTags: (
   );
 }
 
-function PhotoPicker({ existingImageKey, importedImageUrl }: { existingImageKey: string | null; importedImageUrl: string }) {
+function PhotoPicker({
+  existingImageKey,
+  existingImageCredit,
+  importedImageUrl,
+  importedImageCredit,
+}: {
+  existingImageKey: string | null;
+  existingImageCredit: string | null;
+  importedImageUrl: string;
+  importedImageCredit: string | null;
+}) {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [removed, setRemoved] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -436,14 +448,20 @@ function PhotoPicker({ existingImageKey, importedImageUrl }: { existingImageKey:
   }, [fileUrl]);
 
   const preview = fileUrl ?? (removed ? null : existingImageKey ? `/foto/${existingImageKey}` : importedImageUrl || null);
+  // La fascia con la fonte, come la si vedrà sulla ricetta. Una foto appena
+  // scelta dal telefono non ne ha.
+  const credit = fileUrl || removed ? null : existingImageKey ? existingImageCredit : importedImageUrl ? importedImageCredit : null;
 
   return (
     <div className="space-y-3">
       {preview ? (
-        // L'anteprima può essere un file appena scelto (blob:) o l'immagine
-        // trovata dall'import, ancora sul sito d'origine.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="Anteprima della foto" className="aspect-[4/3] w-full max-w-sm rounded-control bg-fill object-cover" />
+        <div className="relative aspect-[4/3] w-full max-w-sm overflow-hidden rounded-control bg-fill">
+          {/* L'anteprima può essere un file appena scelto (blob:) o l'immagine
+              trovata dall'import, ancora sul sito d'origine. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Anteprima della foto" className="absolute inset-0 size-full object-cover" />
+          {credit && <PhotoCredit credit={credit} />}
+        </div>
       ) : (
         <p className="text-[13px] text-label-secondary">Nessuna foto.</p>
       )}
@@ -498,6 +516,7 @@ export function RecipeForm({
   action,
   initial,
   existingImageKey = null,
+  existingImageCredit = null,
   tagSuggestions,
   cancelHref,
   submitLabel = "Salva ricetta",
@@ -505,6 +524,7 @@ export function RecipeForm({
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   initial: RecipeDraft;
   existingImageKey?: string | null;
+  existingImageCredit?: string | null;
   tagSuggestions: string[];
   cancelHref: string;
   submitLabel?: string;
@@ -543,7 +563,7 @@ export function RecipeForm({
         <SectionCard title="La ricetta">
           <div className="space-y-4">
             <Field label="Titolo">
-              <Input value={fields.title} onChange={(event) => set("title", event.target.value)} maxLength={150} required placeholder="Pasta e patate" />
+              <Input value={fields.title} onChange={(event) => set("title", event.target.value)} maxLength={MAX_TITLE_LENGTH} required placeholder="Pasta e patate" />
             </Field>
             <Field label="Descrizione" hint="Facoltativa: due righe per ricordare com'è il piatto.">
               <Textarea value={fields.description} onChange={(event) => set("description", event.target.value)} maxLength={2000} rows={2} />
@@ -577,7 +597,12 @@ export function RecipeForm({
         </SectionCard>
 
         <SectionCard title="Foto">
-          <PhotoPicker existingImageKey={existingImageKey} importedImageUrl={fields.importedImageUrl} />
+          <PhotoPicker
+            existingImageKey={existingImageKey}
+            existingImageCredit={existingImageCredit}
+            importedImageUrl={fields.importedImageUrl}
+            importedImageCredit={siteName(fields.sourceUrl)}
+          />
         </SectionCard>
       </div>
 
