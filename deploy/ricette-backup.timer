@@ -1,0 +1,19 @@
+[Unit]
+Description=Avvia ogni giorno la copia del database e delle foto di Ricette
+
+[Timer]
+# Le 3:30 del mattino: mezz'ora dopo il backup di finanze (3:00 più fino a 15
+# minuti di ritardo), così i due non si contendono il disco dell'LXC. Il
+# backup di Proxmox dell'LXC va quindi messo dopo le 3:45, perché includa le
+# copie di entrambe le app.
+OnCalendar=*-*-* 03:30:00
+
+# La macchina di casa non è sempre accesa. Senza questo, una corsa saltata
+# resta saltata per sempre; con questo parte al primo avvio utile.
+Persistent=true
+
+# Un po' di gioco, ma non tanto da sconfinare oltre le 3:45.
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

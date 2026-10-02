@@ -1,0 +1,42 @@
+# I quattro controlli che CLAUDE.md chiede prima di ogni push, eseguiti anche
+# qui: finché dipendevano solo da chi apriva la pull request, bastava
+# dimenticarsene una volta per portare su `main` codice che non compila.
+name: Verifica
+
+# Solo sulle pull request, e non anche sui push al branch: su `main` si arriva
+# sempre da una PR, quindi il secondo trigger raddoppierebbe le corse sullo
+# stesso commit senza verificare niente di più. Quello che conta è proprio la
+# corsa della PR, perché prova il codice **già unito** a `main`.
+on: pull_request
+
+# Se arrivano altri commit mentre una corsa è in piedi, quella vecchia parla di
+# codice superato: si annulla invece di aspettarla.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifica:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La stessa versione del Dockerfile: un controllo che passa qui e fallisce
+      # nel container di produzione non serve a niente.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` e non `npm install`: qui si verifica esattamente ciò che
+      # dichiara il lock, senza aggiornamenti silenziosi.
+      - run: npm ci
+
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+
+      # Il build non tocca il database: le pagine sono tutte dinamiche, quindi
+      # non serve nessuna variabile d'ambiente.
+      - run: npm run build

@@ -1,0 +1,204 @@
+// Schema del database — Ricette
+// Ricettario di famiglia: ogni utente appartiene al più a una famiglia, e
+// tutti i membri vedono e modificano le ricette della famiglia.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Autenticazione (modelli richiesti da Auth.js / NextAuth)
+// ---------------------------------------------------------------------------
+
+enum FamilyRole {
+  OWNER
+  MEMBER
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime   @default(now())
+  /// Vuota finché l'utente non crea una famiglia o non ci entra con un codice.
+  familyId      String?
+  familyRole    FamilyRole @default(MEMBER)
+  /// Quando è entrato nella famiglia attuale: ordina l'elenco dei membri.
+  joinedAt      DateTime?
+
+  family   Family?   @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  accounts Account[]
+  sessions Session[]
+
+  recipesCreated Recipe[] @relation("RecipeCreatedBy")
+  recipesUpdated Recipe[] @relation("RecipeUpdatedBy")
+
+  @@index([familyId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Famiglia
+// ---------------------------------------------------------------------------
+
+/// Le ricette appartengono alla famiglia, non a chi le ha scritte: se un
+/// membro esce, le sue ricette restano a chi rimane.
+model Family {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  members User[]
+  recipes Recipe[]
+  tags    Tag[]
+}
+
+// ---------------------------------------------------------------------------
+// Ricette
+// ---------------------------------------------------------------------------
+
+/// L'elenco è fisso: le etichette stanno in `src/lib/categories.ts`, e un test
+/// verifica che i due elenchi coincidano.
+enum RecipeCategory {
+  ANTIPASTO
+  PRIMO
+  SECONDO
+  CONTORNO
+  PIATTO_UNICO
+  DOLCE
+  LIEVITATO
+  SALSA
+  BEVANDA
+  ALTRO
+}
+
+/// Da dove arriva la ricetta: scritta a mano, importata da una pagina web o
+/// da un video.
+enum SourceKind {
+  MANUALE
+  SITO
+  VIDEO
+}
+
+model Recipe {
+  id          String          @id @default(cuid())
+  familyId    String
+  title       String
+  description String?
+  category    RecipeCategory?
+  /// Per quante persone sono le quantità degli ingredienti. Vuoto vuol dire
+  /// «non indicato», e allora le porzioni non si ricalcolano.
+  servings    Int?
+  prepMinutes Int?
+  cookMinutes Int?
+  notes       String?
+  sourceUrl   String?
+  sourceKind  SourceKind      @default(MANUALE)
+  /// Nome del file della foto nella cartella delle immagini (`UPLOADS_DIR`).
+  imageKey    String?
+  createdById String?
+  updatedById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  family      Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdBy   User?        @relation("RecipeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   User?        @relation("RecipeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  ingredients Ingredient[]
+  steps       RecipeStep[]
+  tags        Tag[]
+
+  @@index([familyId, updatedAt])
+}
+
+/// Una riga della sezione «Ingredienti». La quantità è un numero perché le
+/// porzioni la ricalcolano; «q.b.» e simili vanno in `note`, senza quantità.
+model Ingredient {
+  id       String  @id @default(cuid())
+  recipeId String
+  position Int
+  /// Sottosezione facoltativa: «Per la crema», «Per la base».
+  section  String?
+  quantity Float?
+  unit     String?
+  name     String
+  note     String?
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, position])
+}
+
+/// Un passo della sezione «Procedimento».
+model RecipeStep {
+  id       String  @id @default(cuid())
+  recipeId String
+  position Int
+  section  String?
+  text     String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, position])
+}
+
+/// Etichetta libera della famiglia («vegetariano», «veloce»). `key` è il nome
+/// normalizzato: «Veloce» e «veloce» sono lo stesso tag.
+model Tag {
+  id       String   @id @default(cuid())
+  familyId String
+  name     String
+  key      String
+
+  family  Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  recipes Recipe[]
+
+  @@unique([familyId, key])
+}

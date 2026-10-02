@@ -1,0 +1,24 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Ogni file di variabili, non solo `.env`: le copie di riserva (`.env.neon`,
+# `.env.bak`, …) contengono le stesse credenziali. Resta tracciato solo
+# l'esempio.
+.env*
+!.env.example
+
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Le foto caricate in sviluppo (in produzione stanno in un volume Docker).
+uploads/

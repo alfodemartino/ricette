@@ -1,0 +1,33 @@
+# Quello che il daemon Docker non deve ricevere: senza questo file il contesto
+# di build sono centinaia di MB spediti a ogni `docker compose build`.
+
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+
+.git/
+.gitignore
+
+# Le credenziali non entrano mai in un'immagine: arrivano a runtime. Tutti i
+# file `.env*`, comprese le copie di riserva: lo stadio di build fa `COPY . .`,
+# e un `.env.neon` accanto al compose finirebbe nella cache delle immagini.
+.env*
+
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+Dockerfile
+.dockerignore
+docker-compose.yml
+deploy.sh
+README.md
+CLAUDE.md
