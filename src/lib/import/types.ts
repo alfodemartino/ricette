@@ -23,6 +23,12 @@ export type ImportedRecipe = {
   steps: ImportedStep[];
   imageUrl: string | null;
   sourceUrl: string;
+  /**
+   * La pagina a cui `sourceUrl` porta dopo i redirect, quando è un'altra (un
+   * link accorciato): serve a riconoscere la stessa ricetta in entrambe le
+   * forme. Vedi `resolvedSource`.
+   */
+  resolvedUrl: string | null;
   sourceKind: "SITO" | "VIDEO";
   /**
    * Il testo grezzo da cui si è partiti quando non c'erano dati strutturati:

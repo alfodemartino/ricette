@@ -2,9 +2,11 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "@/components/NavLink";
+import { RecipeLinks } from "@/components/RecipeLinks";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Alert, buttonClass, Field, inputClass, Input, PhotoCredit, Select, Textarea } from "@/components/ui";
-import { emptyActionState, type ActionState } from "@/lib/action-state";
+import type { SaveRecipeState } from "@/app/actions/recipes";
+import { emptyActionState } from "@/lib/action-state";
 import { CATEGORIES } from "@/lib/categories";
 import { COMMON_UNITS, parseIngredientList, quantityInput } from "@/lib/ingredients";
 import {
@@ -521,7 +523,7 @@ export function RecipeForm({
   cancelHref,
   submitLabel = "Salva ricetta",
 }: {
-  action: (state: ActionState, formData: FormData) => Promise<ActionState>;
+  action: (state: SaveRecipeState, formData: FormData) => Promise<SaveRecipeState>;
   initial: RecipeDraft;
   existingImageKey?: string | null;
   existingImageCredit?: string | null;
@@ -529,7 +531,7 @@ export function RecipeForm({
   cancelHref: string;
   submitLabel?: string;
 }) {
-  const [state, formAction] = useActionState(action, emptyActionState);
+  const [state, formAction] = useActionState<SaveRecipeState, FormData>(action, emptyActionState);
   const [fields, setFields] = useState(() => {
     const { ingredients, steps, tags, ...rest } = initial;
     void ingredients;
@@ -549,13 +551,20 @@ export function RecipeForm({
     [fields, tags, ingredients, steps],
   );
 
+  const duplicates = state.duplicateSource === fields.sourceUrl ? (state.duplicates ?? []) : [];
+  const askDuplicate = duplicates.length > 0;
+
   // Un errore dal server si vede subito, anche in fondo a un form lungo.
   useEffect(() => {
     if (state.error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [state]);
 
   return (
-    <form action={formAction} className="space-y-6">
+    // Dopo ogni invio React svuota il form: qui toglierebbe solo il file della
+    // foto, lasciandone l'anteprima, e un secondo invio (dopo un errore o con
+    // «Salva comunque») salverebbe la ricetta senza. Gli altri campi sono
+    // tutti nello stato, quindi il reset non serve a niente.
+    <form action={formAction} onReset={(event) => event.preventDefault()} className="space-y-6">
       <input type="hidden" name="payload" value={payload} />
       <div ref={errorRef}>{state.error && <Alert tone="error">{state.error}</Alert>}</div>
 
@@ -623,17 +632,35 @@ export function RecipeForm({
             <Textarea value={fields.notes} onChange={(event) => set("notes", event.target.value)} maxLength={4000} rows={3} />
           </Field>
           <Field label="Link alla fonte" hint="La pagina o il video da cui viene la ricetta.">
-            <Input type="url" value={fields.sourceUrl} onChange={(event) => set("sourceUrl", event.target.value)} placeholder="https://" />
+            <Input
+              type="url"
+              value={fields.sourceUrl}
+              // Dove portava il link di prima non vale per quello nuovo.
+              onChange={(event) => setFields((current) => ({ ...current, sourceUrl: event.target.value, resolvedUrl: "" }))}
+              placeholder="https://"
+            />
           </Field>
         </div>
       </SectionCard>
 
       {/* La barra in fondo resta a portata di pollice mentre si scorre il form. */}
-      <div className="sticky bottom-0 z-30 -mx-4 flex items-center justify-end gap-2 border-t border-separator bg-grouped/85 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-card sm:border-0">
-        <NavLink href={cancelHref} className={buttonClass("ghost")}>
-          Annulla
-        </NavLink>
-        <SubmitButton pendingLabel="Salvo…">{submitLabel}</SubmitButton>
+      <div className="sticky bottom-0 z-30 -mx-4 space-y-3 border-t border-separator bg-grouped/85 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-card sm:border-0">
+        {/* La conferma vale per il link che l'ha fatta comparire: se lo si cambia, sparisce. */}
+        {askDuplicate && (
+          <>
+            <input type="hidden" name="confirmDuplicate" value={fields.sourceUrl} />
+            <Alert tone="warning">
+              {duplicates.length === 1 ? "Da questo link c'è già " : "Da questo link ci sono già "}
+              <RecipeLinks recipes={duplicates} />. Vuoi salvarne comunque un&apos;altra?
+            </Alert>
+          </>
+        )}
+        <div className="flex items-center justify-end gap-2">
+          <NavLink href={cancelHref} className={buttonClass("ghost")}>
+            Annulla
+          </NavLink>
+          <SubmitButton pendingLabel="Salvo…">{askDuplicate ? "Salva comunque" : submitLabel}</SubmitButton>
+        </div>
       </div>
     </form>
   );

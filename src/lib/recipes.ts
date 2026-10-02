@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { sourceKey } from "@/lib/import/url";
 import type { RecipeData } from "@/lib/recipe-draft";
 import { tagKey } from "@/lib/tags";
 
@@ -41,6 +42,28 @@ export async function getFamilyRecipe(id: string, familyId: string) {
       updatedBy: { select: { name: true } },
     },
   });
+}
+
+/**
+ * Le ricette della famiglia che vengono da uno dei link dati, confrontati con
+ * `sourceKey`: la stessa pagina con o senza `www.`, parametri di
+ * tracciamento o un'altra forma del link YouTube. Di ogni ricetta conta anche
+ * la pagina a cui il suo link porta dopo i redirect (`resolvedUrl`), così un
+ * link accorciato e quello completo si riconoscono in entrambi i sensi. Le
+ * ricette con una fonte sono al più qualche centinaio, e il confronto si fa
+ * qui invece che in SQL.
+ */
+export async function findFamilyRecipesFromSource(familyId: string, urls: (string | null)[]) {
+  const keys = new Set(urls.map((url) => sourceKey(url ?? "")).filter((key): key is string => key !== null));
+  if (keys.size === 0) return [];
+  const withSource = await prisma.recipe.findMany({
+    where: { familyId, sourceUrl: { not: null } },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, title: true, sourceUrl: true, resolvedUrl: true },
+  });
+  return withSource
+    .filter((recipe) => [recipe.sourceUrl, recipe.resolvedUrl].some((url) => keys.has(sourceKey(url ?? "") ?? "")))
+    .map(({ id, title }) => ({ id, title }));
 }
 
 export async function listFamilyTags(familyId: string) {
@@ -99,6 +122,7 @@ export async function saveRecipe(recipeId: string | null, input: SaveInput) {
       cookMinutes: data.cookMinutes,
       notes: data.notes,
       sourceUrl: data.sourceUrl,
+      resolvedUrl: data.resolvedUrl,
       sourceKind: data.sourceKind,
       updatedById: userId,
       // La fonte segue la foto: una foto nuova, o nessuna, porta la sua.

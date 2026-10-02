@@ -140,6 +140,11 @@ model Recipe {
   cookMinutes Int?
   notes       String?
   sourceUrl   String?
+  /// La pagina a cui `sourceUrl` porta dopo i redirect, se è un'altra (un link
+  /// accorciato). Non si mostra: serve a riconoscere la stessa ricetta quando
+  /// la si importa di nuovo con l'altra forma del link. Si svuota quando
+  /// cambia la fonte.
+  resolvedUrl String?
   sourceKind  SourceKind      @default(MANUALE)
   /// Nome del file della foto nella cartella delle immagini (`UPLOADS_DIR`).
   imageKey    String?

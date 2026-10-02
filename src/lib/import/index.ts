@@ -5,7 +5,7 @@ import { extractJsonLdRecipe } from "@/lib/import/jsonld";
 import { extractPreview } from "@/lib/import/preview";
 import { parseRecipeText } from "@/lib/import/text-recipe";
 import { isComplete, type ImportedRecipe, type RecipeEnhancer } from "@/lib/import/types";
-import { ImportError, isVideoHost, parseImportUrl, youtubeVideoId } from "@/lib/import/url";
+import { ImportError, isVideoHost, parseImportUrl, resolvedSource, youtubeVideoId } from "@/lib/import/url";
 import { extractYouTubeDetails, YOUTUBE_CONSENT_COOKIE, youtubeThumbnail } from "@/lib/import/youtube";
 
 /**
@@ -60,6 +60,7 @@ export function recipeFromHtml(html: string, pageUrl: URL, sourceUrl: URL): Impo
       title: structured.title || preview.title,
       imageUrl: structured.imageUrl ?? preview.imageUrl,
       sourceKind,
+      resolvedUrl: resolvedSource(sourceUrl, pageUrl),
     };
   }
 
@@ -81,6 +82,7 @@ export function recipeFromHtml(html: string, pageUrl: URL, sourceUrl: URL): Impo
     steps: parsed.steps,
     imageUrl: preview.imageUrl,
     sourceUrl: sourceUrl.href,
+    resolvedUrl: resolvedSource(sourceUrl, pageUrl),
     sourceKind,
     rawText: rawText || null,
     method: parsed.ingredients.length > 0 || parsed.steps.length > 0 ? "testo" : "anteprima",
@@ -107,6 +109,7 @@ export function recipeFromYouTube(html: string, videoUrl: URL, videoId: string):
     steps: parsed.steps,
     imageUrl: youtubeThumbnail(videoId),
     sourceUrl: videoUrl.href,
+    resolvedUrl: null,
     sourceKind: "VIDEO",
     rawText: description || null,
     method: parsed.ingredients.length > 0 || parsed.steps.length > 0 ? "testo" : "anteprima",
@@ -143,6 +146,7 @@ async function followLinkedRecipe(partial: ImportedRecipe, fetcher: Fetcher): Pr
           title: linked.title || partial.title,
           imageUrl: linked.imageUrl ?? partial.imageUrl,
           sourceKind: partial.sourceKind,
+          resolvedUrl: partial.resolvedUrl,
           rawText: partial.rawText,
         };
       }

@@ -74,6 +74,7 @@ describe("draftFromImport", () => {
     steps: [{ section: "Montaggio", text: "Alternate savoiardi e crema." }],
     imageUrl: "https://cdn.esempio.it/t.jpg",
     sourceUrl: "https://ricette.esempio.it/tiramisu",
+    resolvedUrl: null,
     sourceKind: "SITO",
     rawText: null,
     method: "dati-strutturati",

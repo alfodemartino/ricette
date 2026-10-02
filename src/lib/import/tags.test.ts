@@ -15,6 +15,7 @@ function recipe(overrides: Partial<ImportedRecipe>): ImportedRecipe {
     steps: [{ section: null, text: "Cuocete il riso nel brodo." }],
     imageUrl: null,
     sourceUrl: "https://ricette.esempio.it/risotto",
+    resolvedUrl: null,
     sourceKind: "SITO",
     rawText: null,
     method: "dati-strutturati",

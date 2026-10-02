@@ -169,6 +169,7 @@ export function extractJsonLdRecipe($: CheerioAPI, pageUrl: URL, sourceUrl: stri
     steps,
     imageUrl: readImage(recipe.image ?? recipe.thumbnailUrl, pageUrl),
     sourceUrl,
+    resolvedUrl: null,
     sourceKind: "SITO",
     rawText: null,
     method: "dati-strutturati",

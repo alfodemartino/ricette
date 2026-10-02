@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, youtubeVideoId } from "./url";
+import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, resolvedSource, sourceKey, youtubeVideoId } from "./url";
 
 describe("parseImportUrl", () => {
   it("accetta i link normali e aggiunge https se manca", () => {
@@ -73,5 +73,54 @@ describe("piattaforme", () => {
     expect(isVideoHost(new URL("https://www.instagram.com/reel/abc/"))).toBe(true);
     expect(isVideoHost(new URL("https://vm.tiktok.com/abc"))).toBe(true);
     expect(isVideoHost(new URL("https://www.giallozafferano.it/ricetta"))).toBe(false);
+  });
+});
+
+describe("sourceKey", () => {
+  it.each([
+    ["https://www.esempio.it/ricette/tiramisu/", "http://esempio.it/ricette/tiramisu"],
+    ["https://esempio.it/tiramisu?utm_source=whatsapp&fbclid=abc#commenti", "https://esempio.it/tiramisu"],
+    ["https://m.esempio.it/tiramisu", "https://esempio.it/tiramisu"],
+    ["https://esempio.it/ricetta?id=4&lang=it", "https://esempio.it/ricetta?lang=it&id=4"],
+    ["https://youtu.be/dQw4w9WgXcQ?si=abc", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10"],
+    ["https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://m.youtube.com/watch?v=dQw4w9WgXcQ"],
+    ["https://www.instagram.com/reel/ABC123/?igsh=xyz", "https://instagram.com/reel/ABC123"],
+  ])("«%s» e «%s» sono la stessa fonte", (a, b) => {
+    expect(sourceKey(a)).toBe(sourceKey(b));
+  });
+
+  it.each([
+    ["https://esempio.it/tiramisu", "https://esempio.it/panna-cotta"],
+    ["https://esempio.it/ricetta?id=4", "https://esempio.it/ricetta?id=5"],
+    ["https://esempio.it/tiramisu", "https://altro-sito.it/tiramisu"],
+  ])("«%s» e «%s» sono fonti diverse", (a, b) => {
+    expect(sourceKey(a)).not.toBe(sourceKey(b));
+  });
+
+  it("non dà una chiave a ciò che non è un link http", () => {
+    expect(sourceKey("")).toBeNull();
+    expect(sourceKey("non un link")).toBeNull();
+    expect(sourceKey("javascript:alert(1)")).toBeNull();
+  });
+});
+
+describe("resolvedSource", () => {
+  const resolved = (pasted: string, final: string) => resolvedSource(new URL(pasted), new URL(final));
+
+  it("tiene la pagina a cui porta un link accorciato", () => {
+    expect(resolved("https://bit.ly/abc123", "https://ricette.esempio.it/tiramisu")).toBe("https://ricette.esempio.it/tiramisu");
+    expect(resolved("https://vm.tiktok.com/ZM123/", "https://www.tiktok.com/@cuoca/video/7012345678")).toBe(
+      "https://www.tiktok.com/@cuoca/video/7012345678",
+    );
+  });
+
+  it("ignora i redirect che non cambiano la fonte", () => {
+    expect(resolved("http://esempio.it/tiramisu", "https://www.esempio.it/tiramisu/")).toBeNull();
+  });
+
+  it("ignora le pagine di accesso e di consenso", () => {
+    expect(resolved("https://instagr.am/p/ABC", "https://www.instagram.com/accounts/login/?next=%2Fp%2FABC")).toBeNull();
+    expect(resolved("https://goo.gl/abc", "https://consent.google.com/ml?continue=x")).toBeNull();
+    expect(resolved("https://fb.me/abc", "https://www.facebook.com/login/")).toBeNull();
   });
 });

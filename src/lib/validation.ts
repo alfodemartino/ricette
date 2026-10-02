@@ -44,6 +44,7 @@ export const recipeDraftSchema = z.object({
   cookMinutes: text(10),
   notes: text(8000),
   sourceUrl: text(2000),
+  resolvedUrl: text(2000),
   sourceKind: z.enum(["MANUALE", "SITO", "VIDEO"]).catch("MANUALE"),
   tags: z.array(z.string().max(60)).max(40).catch([]),
   ingredients: z.array(ingredientRowSchema).max(300),

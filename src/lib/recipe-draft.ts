@@ -31,6 +31,8 @@ export type RecipeDraft = {
   cookMinutes: string;
   notes: string;
   sourceUrl: string;
+  /** Dove porta `sourceUrl` dopo i redirect; il form lo svuota se si cambia il link. */
+  resolvedUrl: string;
   sourceKind: SourceKind;
   tags: string[];
   ingredients: IngredientRow[];
@@ -54,6 +56,7 @@ export function emptyDraft(): RecipeDraft {
     cookMinutes: "",
     notes: "",
     sourceUrl: "",
+    resolvedUrl: "",
     sourceKind: "MANUALE",
     tags: [],
     ingredients: [emptyIngredient()],
@@ -123,6 +126,7 @@ export function draftFromImport(imported: ImportedRecipe): RecipeDraft {
     cookMinutes: numberInput(imported.cookMinutes),
     notes: "",
     sourceUrl: imported.sourceUrl,
+    resolvedUrl: imported.resolvedUrl ?? "",
     sourceKind: imported.sourceKind,
     tags,
     ingredients: ingredients.length > 0 ? withHeadings(ingredients, (item) => ingredientRowFromText(item.text)) : [emptyIngredient()],
@@ -144,6 +148,7 @@ export type StoredRecipe = {
   cookMinutes: number | null;
   notes: string | null;
   sourceUrl: string | null;
+  resolvedUrl: string | null;
   sourceKind: SourceKind;
   tags: { name: string }[];
   ingredients: { section: string | null; quantity: number | null; unit: string | null; name: string; note: string | null }[];
@@ -160,6 +165,7 @@ export function draftFromRecipe(recipe: StoredRecipe): RecipeDraft {
     cookMinutes: numberInput(recipe.cookMinutes),
     notes: recipe.notes ?? "",
     sourceUrl: recipe.sourceUrl ?? "",
+    resolvedUrl: recipe.resolvedUrl ?? "",
     sourceKind: recipe.sourceKind,
     tags: recipe.tags.map((tag) => tag.name),
     ingredients:
@@ -201,6 +207,7 @@ export type RecipeData = {
   cookMinutes: number | null;
   notes: string | null;
   sourceUrl: string | null;
+  resolvedUrl: string | null;
   sourceKind: SourceKind;
   tags: string[];
   ingredients: IngredientData[];
@@ -277,6 +284,8 @@ export function draftToData(draft: RecipeDraft): RecipeData {
 
   const sourceUrl = optionalText(draft.sourceUrl, 2000);
   if (sourceUrl && !/^https?:\/\//i.test(sourceUrl)) throw new DraftError("Il link della fonte deve cominciare con http:// o https://.");
+  // Non si vede e non lo scrive l'utente: se non è un link valido, si lascia cadere.
+  const resolvedUrl = sourceUrl ? optionalText(draft.resolvedUrl, 2000) : null;
 
   return {
     title,
@@ -287,6 +296,7 @@ export function draftToData(draft: RecipeDraft): RecipeData {
     cookMinutes: optionalInt(draft.cookMinutes, "Tempo di cottura", 10_000),
     notes: optionalText(draft.notes, 4000),
     sourceUrl,
+    resolvedUrl: resolvedUrl && /^https?:\/\//i.test(resolvedUrl) ? resolvedUrl : null,
     sourceKind: sourceUrl ? draft.sourceKind : "MANUALE",
     tags: uniqueTags(draft.tags).slice(0, 20),
     ingredients,
