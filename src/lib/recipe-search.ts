@@ -69,14 +69,15 @@ export type SearchableRecipe = {
   category: RecipeCategory | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
-  ingredients: { name: string }[];
+  ingredients: { name: string; note: string | null }[];
   tags: { name: string }[];
 };
 
 /**
  * Il testo in cui si cerca: titolo, descrizione, note, categoria, ingredienti
- * e tag. Così «zucchine» trova anche la frittata che le ha solo fra gli
- * ingredienti, e «dolce» trova le ricette della categoria Dolce.
+ * (nome e nota) e tag. Così «zucchine» trova anche la frittata che le ha solo
+ * fra gli ingredienti, «zucchina» il minestrone con «Verdure miste» annotate
+ * «una carota e una zucchina», e «dolce» le ricette della categoria Dolce.
  */
 export function recipeSearchText(recipe: SearchableRecipe): string {
   return normalizeForSearch(
@@ -85,7 +86,7 @@ export function recipeSearchText(recipe: SearchableRecipe): string {
       recipe.description,
       recipe.notes,
       recipe.category && categoryLabel(recipe.category),
-      ...recipe.ingredients.map((ingredient) => ingredient.name),
+      ...recipe.ingredients.flatMap((ingredient) => [ingredient.name, ingredient.note]),
       ...recipe.tags.map((tag) => tag.name),
     ]
       .filter(Boolean)
