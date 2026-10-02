@@ -12,6 +12,7 @@ import {
   renameFamilyAction,
 } from "@/app/actions/family";
 import { emptyActionState } from "@/lib/action-state";
+import { copyText } from "@/lib/clipboard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Alert, buttonClass, Field, Input } from "@/components/ui";
 
@@ -82,12 +83,11 @@ export function InviteCode({ code, canRegenerate }: { code: string; canRegenerat
           type="button"
           className={buttonClass("secondary", "", "sm")}
           onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(code);
+            // Anche dalla rete di casa, in http: `copyText` ha il ripiego per quando
+            // il browser non dà accesso agli appunti. Se non riesce, resta il codice da leggere.
+            if (await copyText(code)) {
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
-            } catch {
-              // Senza HTTPS il browser non dà accesso agli appunti: resta il codice da leggere.
             }
           }}
         >
