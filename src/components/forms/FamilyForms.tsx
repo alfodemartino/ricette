@@ -21,7 +21,7 @@ export function CreateFamilyForm() {
     <form action={formAction} className="space-y-4">
       {state.error && <Alert tone="error">{state.error}</Alert>}
       <Field label="Nome della famiglia">
-        <Input name="name" placeholder="Famiglia De Martino" maxLength={60} required />
+        <Input name="name" placeholder="Famiglia Rossi" maxLength={60} required />
       </Field>
       <SubmitButton pendingLabel="Creo…">Crea la famiglia</SubmitButton>
     </form>
