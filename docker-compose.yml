@@ -1,0 +1,139 @@
+# Esecuzione in casa, sullo stesso container LXC di Proxmox che ospita
+# finanze. Le due applicazioni non condividono niente: ognuna ha il suo
+# progetto Compose (`name:` qui sotto), la sua rete, i suoi volumi e il suo
+# Postgres. Cambiano solo le porte pubblicate sull'LXC, che non possono essere
+# le stesse: l'app risponde sulla 3001 e il database sulla 5433.
+#
+#   docker compose build                 costruisce le immagini
+#   docker compose run --rm migrate      applica le migrazioni
+#   docker compose up -d                 avvia database e applicazione
+#
+# Il servizio `cloudflared` sta dietro il profilo `public` e resta spento
+# finché non c'è un dominio: per accenderlo basta aggiungere
+# `COMPOSE_PROFILES=public` al file `.env`.
+
+name: ricette
+
+x-logging: &logging
+  driver: json-file
+  options:
+    # Senza un tetto i log crescono finché non riempiono il disco dell'LXC.
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # Postgres locale. Gli altri servizi lo raggiungono sulla rete interna di
+  # Compose, all'host `db` — lo stesso nome del database di finanze, ma su
+  # un'altra rete: i due non si vedono. Per un `psql` a mano:
+  # `docker compose exec db psql -U ricette`.
+  #
+  # `PG_IMAGE` è la stessa che usa `backup`, di proposito: `pg_dump` non legge
+  # un server più recente di sé. Alzare la versione *maggiore* non è un cambio
+  # di tag: ogni versione tiene i dati in una sua sottocartella del volume
+  # (`18/docker`, …), quindi il server nuovo partirebbe su un database vuoto.
+  # Si passa da un dump e un restore (vedi README).
+  db:
+    image: ${PG_IMAGE:-postgres:18}
+    environment:
+      POSTGRES_USER: ricette
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?imposta POSTGRES_PASSWORD nel .env}
+      POSTGRES_DB: ricette
+    ports:
+      # Per un client SQL dalla rete di casa. La porta si lega a un indirizzo
+      # preciso, mai a tutti: senza `DB_LAN_IP` resta su 127.0.0.1. La 5433 e
+      # non la 5432, che sull'LXC è già del database di finanze.
+      - "${DB_LAN_IP:-127.0.0.1}:${DB_PORT:-5433}:5432"
+    volumes:
+      # Dalla 18 l'immagine tiene i dati in una sottocartella versionata di
+      # /var/lib/postgresql: il volume va montato lì, non su `.../data`.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ricette -d ricette"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    build:
+      context: .
+      target: runner
+    image: ricette-app
+    env_file: .env
+    ports:
+      # Pubblicata sulla LAN. La 3001 sull'LXC, perché la 3000 è di finanze;
+      # dentro il container l'app ascolta sempre sulla 3000.
+      - "${APP_PORT:-3001}:3000"
+    volumes:
+      # Le foto delle ricette. Stanno fuori dal database, e quindi fuori dai
+      # dump di `pg_dump`: `backup-db.sh` le archivia a parte.
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      # `fetch` globale di Node 22: evita di installare curl solo per questo.
+      test:
+        - CMD
+        - node
+        - -e
+        # Apici singoli YAML e doppi in JavaScript: `? 0 : 1` senza virgolette
+        # verrebbe letto come una mappa e il file non validerebbe più.
+        - 'fetch("http://127.0.0.1:3000/api/health").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging: *logging
+
+  # Container usa e getta: `docker compose run --rm migrate`. Il profilo lo
+  # tiene fuori da `up`, ma `run` lo attiva da solo quando serve, e con lui
+  # avvia anche `db` se è spento.
+  migrate:
+    build:
+      context: .
+      target: migrator
+    image: ricette-migrator
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+    restart: "no"
+    logging: *logging
+
+  # Copia del database e delle foto in una cartella della macchina, lanciata
+  # da `backup-db.sh`. Le foto si leggono dal volume in sola lettura.
+  backup:
+    image: ${PG_IMAGE:-postgres:18}
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${BACKUP_DIR:-/var/backups/ricette}:/backups
+      - uploads:/uploads:ro
+    profiles: ["tools"]
+    restart: "no"
+    logging: *logging
+
+  # Espone l'applicazione su internet senza aprire porte sul router. È un
+  # tunnel diverso da quello di finanze, con il suo token: le due app restano
+  # indipendenti anche qui. L'hostname pubblico va puntato a `http://app:3000`.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    env_file: .env
+    profiles: ["public"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  uploads:

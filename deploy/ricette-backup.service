@@ -1,0 +1,14 @@
+[Unit]
+Description=Copia del database e delle foto di Ricette
+Documentation=https://github.com/alfodemartino/ricette
+# Senza Docker non c'è niente da fare: meglio non partire che fallire.
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ricette
+ExecStart=/opt/ricette/backup-db.sh
+
+# Un dump bloccato non deve restare appeso per sempre.
+TimeoutStartSec=30min
