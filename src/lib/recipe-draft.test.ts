@@ -64,6 +64,7 @@ describe("draftFromImport", () => {
     prepMinutes: 40,
     cookMinutes: null,
     category: "Dessert",
+    keywords: [],
     ingredients: [
       { section: null, text: "Per la crema:" },
       { section: null, text: "500 g di mascarpone" },

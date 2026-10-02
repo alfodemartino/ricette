@@ -125,6 +125,17 @@ function readCategory(value: Json): string | null {
   return text || null;
 }
 
+/** Le parole chiave: una stringa separata da virgole oppure un elenco. */
+export function readKeywords(value: Json): string[] {
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .filter((entry): entry is string => typeof entry === "string")
+    .flatMap((entry) => entry.split(/[,;]/))
+    .map((entry) => cleanLine(entry))
+    .filter(Boolean)
+    .slice(0, 50);
+}
+
 /** La ricetta nei dati strutturati della pagina, oppure `null` se non c'è. */
 export function extractJsonLdRecipe($: CheerioAPI, pageUrl: URL, sourceUrl: string): ImportedRecipe | null {
   let node: JsonObject | null = null;
@@ -153,6 +164,7 @@ export function extractJsonLdRecipe($: CheerioAPI, pageUrl: URL, sourceUrl: stri
     prepMinutes,
     cookMinutes,
     category: readCategory(recipe.recipeCategory),
+    keywords: readKeywords(recipe.keywords),
     ingredients: ingredients.map((text) => ({ section: null, text })),
     steps,
     imageUrl: readImage(recipe.image ?? recipe.thumbnailUrl, pageUrl),

@@ -26,6 +26,8 @@ export function suggestedTags(recipe: ImportedRecipe): string[] {
     [
       recipe.title,
       recipe.description,
+      recipe.category,
+      ...recipe.keywords,
       recipe.sourceUrl,
       recipe.rawText,
       ...recipe.ingredients.map((item) => item.text),
