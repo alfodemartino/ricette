@@ -14,23 +14,32 @@ function recipe(overrides: Partial<SearchableRecipe> & { title: string }): Searc
   };
 }
 
+function ingredient(name: string, note: string | null = null) {
+  return { name, note };
+}
+
 const frittata = recipe({
   title: "Frittata di zucchine",
   category: "SECONDO",
   prepMinutes: 10,
   cookMinutes: 15,
-  ingredients: [{ name: "Uova" }, { name: "Zucchine" }],
+  ingredients: [ingredient("Uova"), ingredient("Zucchine")],
   tags: [{ name: "veloce" }, { name: "vegetariano" }],
 });
 const tiramisu = recipe({
   title: "Tiramisù",
   category: "DOLCE",
   prepMinutes: 30,
-  ingredients: [{ name: "Mascarpone" }, { name: "Caffè" }],
+  ingredients: [ingredient("Mascarpone"), ingredient("Caffè")],
   tags: [{ name: "vegetariano" }],
 });
-const ragu = recipe({ title: "Ragù della domenica", category: "SALSA", ingredients: [{ name: "Passata" }] });
-const all = [frittata, tiramisu, ragu];
+const ragu = recipe({ title: "Ragù della domenica", category: "SALSA", ingredients: [ingredient("Passata")] });
+const minestrone = recipe({
+  title: "Minestrone",
+  category: "PRIMO",
+  ingredients: [ingredient("Verdure miste", "una carota, una patata e una zucchina")],
+});
+const all = [frittata, tiramisu, ragu, minestrone];
 
 const none = { q: "", category: null, tags: [], maxMinutes: null };
 
@@ -43,6 +52,11 @@ describe("filterRecipes", () => {
     expect(filterRecipes(all, { ...none, q: "zucchine" })).toEqual([frittata]);
     expect(filterRecipes(all, { ...none, q: "caffe" })).toEqual([tiramisu]);
     expect(filterRecipes(all, { ...none, q: "tiramisu" })).toEqual([tiramisu]);
+  });
+
+  it("cerca anche nelle note degli ingredienti", () => {
+    expect(filterRecipes(all, { ...none, q: "zucchin" })).toEqual([frittata, minestrone]);
+    expect(filterRecipes(all, { ...none, q: "patata" })).toEqual([minestrone]);
   });
 
   it("vuole tutte le parole, in qualsiasi ordine", () => {

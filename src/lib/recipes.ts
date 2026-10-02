@@ -24,7 +24,7 @@ export async function listFamilyRecipes(familyId: string) {
       imageKey: true,
       imageCredit: true,
       sourceKind: true,
-      ingredients: { select: { name: true } },
+      ingredients: { select: { name: true, note: true } },
       tags: { select: { name: true }, orderBy: { name: "asc" } },
       createdBy: { select: { name: true } },
     },
