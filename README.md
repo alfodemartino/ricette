@@ -33,7 +33,8 @@ copie notturne.
 - **Porzioni ricalcolabili** — nella ricetta si cambia il numero di persone e
   le quantità si ricalcolano come le scriverebbe una persona: grammi
   arrotondati come su una bilancia, uova e cucchiai in frazioni di casa (½, ⅓,
-  ¾). «q.b.» resta «q.b.».
+  ¾). «q.b.» resta «q.b.». Quando le persone sono diverse da quelle della
+  ricetta, una freccia accanto a «Persone» riporta le quantità originali.
 - **In cucina** — toccando un passo del procedimento lo si segna come fatto.
 - **Condivisione** — una ricetta parte come messaggio di testo: titolo,
   ingredienti con le quantità per le persone scelte, procedimento, note e
@@ -48,8 +49,9 @@ copie notturne.
   della famiglia (#veloce, #vegetariano). I tag che non usa più nessuna ricetta
   spariscono da soli.
 - **Ricerca e filtri** — la casella cerca mentre si scrive in titolo,
-  descrizione, note, ingredienti, tag e categoria, senza badare a maiuscole e
-  accenti. Le pastiglie filtrano per categoria, per tag e per tempo totale
+  descrizione, note, ingredienti (nome e nota, così «zucchina» trova anche le
+  «Verdure miste» annotate «una carota e una zucchina»), tag e categoria,
+  senza badare a maiuscole e accenti. Le pastiglie filtrano per categoria, per tag e per tempo totale
   (entro 15, 30, 60 minuti). Tutto resta nell'indirizzo
   (`/ricette?q=zucchine&tag=veloce`).
 - **Foto** — una per ricetta, dal telefono o presa dalla fonte importata.
@@ -129,6 +131,22 @@ La bozza arriva anche con qualche tag già proposto (`src/lib/import/tags.ts`):
 Come tutto il resto della bozza, tag e titolo si cambiano nel form prima di
 salvare.
 
+**Doppioni.** Se la famiglia ha già una ricetta dallo stesso link, sopra il
+form compare un avviso con il link a quella esistente, e al salvataggio la
+barra in fondo chiede «Salva comunque». Non si blocca niente, perché una
+variante della stessa ricetta può essere voluta. La conferma la chiede anche
+una ricetta scritta a mano con il link di una che c'è già; la modifica di una
+ricetta esistente no.
+
+Due link valgono come lo stesso (`sourceKey` in `src/lib/import/url.ts`)
+senza badare a protocollo, `www.`, barra finale e parametri di tracciamento
+(`utm_…`, `fbclid`, `igsh`…); per YouTube conta solo il video, da qualunque
+forma di link. Un link accorciato (`bit.ly`, `vm.tiktok.com`, `pin.it`) vale
+come la pagina a cui porta: l'import ricorda dove finiscono i redirect
+(`resolvedUrl`, che non si vede), tranne quando finiscono su una pagina di
+accesso o di consenso, che vale per qualunque ricetta. Le ricette salvate
+prima di questo controllo conoscono solo il link incollato.
+
 **Sicurezza.** L'app gira nella rete di casa, accanto al router, a finanze e
 ai database: un link non deve diventare un modo per interrogarli dal server.
 Per questo l'import accetta solo `http`/`https` sulle porte standard, rifiuta
@@ -171,6 +189,12 @@ utenti. Cambiano solo le porte pubblicate sull'LXC:
 | Database (client SQL) | 5432 | **5433** |
 | Cartella | `/opt/finanze` | `/opt/ricette` |
 | Copie notturne | `/var/backups/finanze`, alle 3:00 | `/var/backups/ricette`, alle **3:30** |
+
+Restano separati anche i cookie di accesso, benché il browser li distingua
+per host e non per porta: aprendo le due app dallo stesso IP, con i nomi
+predefiniti di Auth.js (`authjs.session-token`…) l'accesso a una
+scollegherebbe l'altra. Quelli di ricette hanno il prefisso `ricette.`
+(`src/lib/auth.ts`).
 
 In una prova a riposo i due container di ricette occupavano circa 110 MB di
 RAM in tutto (app e database); crescono mentre si converte una foto. Prima del
@@ -497,11 +521,14 @@ src/lib/ingredients.ts        Lettura delle righe di ingredienti, unità, porzio
 src/lib/recipe-draft.ts       La bozza del form: da import, da database, verso il database
 src/lib/recipe-search.ts      Ricerca e filtri dell'elenco
 src/lib/share.ts              La ricetta come messaggio da condividere, e i link per WhatsApp e l'email
+src/lib/clipboard.ts          Copia negli appunti, con il ripiego per l'http della rete di casa
+src/lib/site.ts               Il nome del sito di un link, per la fonte, il tag e la scritta sulla foto
 src/lib/categories.ts         Le portate e il riconoscimento dalle etichette dei siti
 src/lib/tags.ts               Tag liberi: normalizzazione e doppioni
 src/lib/duration.ts           Tempi: durate ISO 8601 e formattazione
 src/lib/import/               Import da link: indirizzi e sicurezza, download, schema.org,
-                              YouTube, anteprime, testo libero, catena degli estrattori
+                              YouTube, anteprime, testo libero, catena degli estrattori,
+                              tag proposti, link che valgono come lo stesso (doppioni)
 src/lib/photos.ts             Foto: conversione con sharp, salvataggio e lettura
 src/lib/recipes.ts            Accesso alle ricette, sempre filtrato per famiglia
 src/lib/session.ts            Utente e famiglia della richiesta, redirect per le pagine

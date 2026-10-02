@@ -23,8 +23,8 @@ scartata, questo file si aggiorna nella stessa PR.
 - Modello dati solido: quantità numeriche, unità normalizzate, sottosezioni,
   porzioni ricalcolate con arrotondamenti «da cucina».
 - Import da link curato: schema.org, YouTube, anteprime, link nella
-  descrizione, tag proposti, `safeFetch` contro la rete di casa, bozza mai
-  salvata da sola.
+  descrizione, tag proposti, avviso dei doppioni (anche da un link
+  accorciato), `safeFetch` contro la rete di casa, bozza mai salvata da sola.
 - Lettura degli elenchi incollati pensata per l'italiano.
 - Ricettario di famiglia vero: inviti, ruoli, filtro sul `familyId` a ogni
   richiesta, foto servite solo alla famiglia.
@@ -65,6 +65,11 @@ Schermo sempre acceso (Screen Wake Lock API), condivisione nativa
 installazione come app richiedono HTTPS. Poiché Ricette si apre anche in
 http, queste funzioni si accendono solo dal dominio; in http compaiono
 ripieghi (testo selezionabile, link `wa.me`) o una breve indicazione.
+
+Per la copia il ripiego c'è già e va riusato: `copyText`
+(`src/lib/clipboard.ts`) passa a `execCommand("copy")` quando
+`navigator.clipboard` manca, e così copiano anche in http il messaggio di
+«Condividi» e il codice d'invito.
 
 - Su iOS lo schermo acceso funziona in Safari da iOS 16.4 e nelle app sulla
   schermata Home da iOS 18.4.
@@ -135,8 +140,9 @@ spariscono.
   `onDelete: SetNull`), indice `[familyId, deletedAt]`, migrazione nuova.
 - `src/lib/trash.ts`, puro e con test: durata, data di eliminazione
   definitiva, scadenza.
-- `src/lib/recipes.ts`: le letture e il controllo iniziale di `saveRecipe`
-  filtrano `deletedAt: null`; `listFamilyTags` usa
+- `src/lib/recipes.ts`: le letture, comprese `findFamilyRecipesFromSource`
+  e `listFamilyRecipesToShare` arrivate dopo l'analisi, e il controllo
+  iniziale di `saveRecipe` filtrano `deletedAt: null`; `listFamilyTags` usa
   `recipes: { some: { deletedAt: null } }`, così i tag di una ricetta nel
   cestino restano legati e il ripristino non li perde. Nuove `trashRecipe`,
   `restoreRecipe`, `listTrashedRecipes`, `purgeRecipe`,
@@ -189,7 +195,9 @@ spariscono.
 - La coda di `importRecipe` (link nel testo, `enhancers`, controllo «nessuna
   ricetta») diventa una funzione comune, usata anche da
   `importRecipeFromText`. Se il testo rimanda alla ricetta completa, quella
-  pagina diventa la fonte.
+  pagina diventa la fonte, e come per i link vale l'avviso dei doppioni:
+  `importTextAction` restituisce `existing` da
+  `findFamilyRecipesFromSource`, con `sourceUrl` e `resolvedUrl`.
 - `importTextAction` (al massimo 20.000 caratteri) e, in
   `/ricette/importa`, il controllo segmentato «Da link | Da testo»
   (`SegmentedLinks`, `?da=testo`).
