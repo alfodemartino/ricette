@@ -12,6 +12,12 @@ export type ImportedRecipe = {
   prepMinutes: number | null;
   cookMinutes: number | null;
   category: string | null;
+  /**
+   * Le parole chiave della fonte (`keywords` di schema.org). Sono pensate per
+   * i motori di ricerca, spesso frasi intere: non diventano tag, servono solo
+   * a riconoscere quelli da proporre (`src/lib/import/tags.ts`).
+   */
+  keywords: string[];
   /** Le righe degli ingredienti così come le scrive la fonte. */
   ingredients: { section: string | null; text: string }[];
   steps: ImportedStep[];

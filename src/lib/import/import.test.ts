@@ -34,6 +34,7 @@ describe("importRecipe — dati strutturati", () => {
       prepMinutes: 15,
       cookMinutes: 40,
       category: "Primi piatti",
+      keywords: ["pasta e patate", "primi napoletani", "provola"],
       imageUrl: "https://cdn.esempio.it/pasta-patate.jpg",
       sourceUrl: url,
       sourceKind: "SITO",
@@ -61,6 +62,7 @@ describe("importRecipe — dati strutturati", () => {
     expect(recipe.description).toBe("Il dolce al cucchiaio più amato.");
     expect(recipe.servings).toBe(8);
     expect(recipe.prepMinutes).toBe(40);
+    expect(recipe.keywords).toEqual(["tiramisù", "dolci al cucchiaio"]);
     expect(recipe.imageUrl).toBe("https://cdn.esempio.it/tiramisu-16x9.jpg");
     expect(recipe.steps).toEqual([
       { section: "La crema", text: "Montate i tuorli con metà dello zucchero." },

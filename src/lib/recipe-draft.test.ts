@@ -64,6 +64,7 @@ describe("draftFromImport", () => {
     prepMinutes: 40,
     cookMinutes: null,
     category: "Dessert",
+    keywords: [],
     ingredients: [
       { section: null, text: "Per la crema:" },
       { section: null, text: "500 g di mascarpone" },
@@ -94,6 +95,11 @@ describe("draftFromImport", () => {
       { kind: "heading", title: "Montaggio" },
       { kind: "item", text: "Alternate savoiardi e crema." },
     ]);
+  });
+
+  it("propone il tag bimby se la fonte ne parla", () => {
+    expect(draftFromImport(imported).tags).toEqual([]);
+    expect(draftFromImport({ ...imported, title: "Tiramisù Bimby" }).tags).toEqual(["bimby"]);
   });
 
   it("una bozza importata e risalvata non perde niente", () => {
