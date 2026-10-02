@@ -21,6 +21,7 @@ export async function listFamilyRecipes(familyId: string) {
       cookMinutes: true,
       servings: true,
       imageKey: true,
+      imageCredit: true,
       sourceKind: true,
       ingredients: { select: { name: true } },
       tags: { select: { name: true }, orderBy: { name: "asc" } },
@@ -56,6 +57,8 @@ type SaveInput = {
   data: RecipeData;
   /** `undefined` lascia la foto com'è; `null` la toglie. */
   imageKey?: string | null;
+  /** Il sito da cui arriva la nuova foto, se l'ha scaricata l'import. */
+  imageCredit?: string | null;
 };
 
 /**
@@ -98,7 +101,8 @@ export async function saveRecipe(recipeId: string | null, input: SaveInput) {
       sourceUrl: data.sourceUrl,
       sourceKind: data.sourceKind,
       updatedById: userId,
-      ...(input.imageKey !== undefined ? { imageKey: input.imageKey } : {}),
+      // La fonte segue la foto: una foto nuova, o nessuna, porta la sua.
+      ...(input.imageKey !== undefined ? { imageKey: input.imageKey, imageCredit: input.imageCredit ?? null } : {}),
     };
 
     let id: string;

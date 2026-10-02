@@ -143,6 +143,10 @@ model Recipe {
   sourceKind  SourceKind      @default(MANUALE)
   /// Nome del file della foto nella cartella delle immagini (`UPLOADS_DIR`).
   imageKey    String?
+  /// Il sito da cui l'import ha scaricato la foto («ricetteperbimby.it»),
+  /// scritto in basso sopra la foto. Vuoto per le foto caricate a mano: segue
+  /// sempre la foto, e cambia solo quando cambia lei.
+  imageCredit String?
   createdById String?
   updatedById String?
   createdAt   DateTime        @default(now())

@@ -10,16 +10,9 @@ import { formatMinutes, totalMinutes } from "@/lib/duration";
 import { filtersHref } from "@/lib/recipe-search";
 import { getFamilyRecipe } from "@/lib/recipes";
 import { assertId, requireFamilyViewer } from "@/lib/session";
+import { siteName } from "@/lib/site";
 
 const dateFormat = new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeZone: "Europe/Rome" });
-
-function sourceLabel(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireFamilyViewer();
@@ -71,7 +64,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="space-y-6">
           {recipe.imageKey && (
-            <RecipePhoto imageKey={recipe.imageKey} title={recipe.title} className="aspect-[4/3] w-full rounded-card" />
+            <RecipePhoto
+              imageKey={recipe.imageKey}
+              title={recipe.title}
+              credit={recipe.imageCredit}
+              className="aspect-[4/3] w-full rounded-card"
+            />
           )}
 
           {(facts.length > 0 || recipe.description) && (
@@ -110,7 +108,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
                 rel="noopener noreferrer nofollow"
                 className="text-[15px] break-all text-tint hover:underline"
               >
-                {sourceLabel(recipe.sourceUrl)} ↗
+                {siteName(recipe.sourceUrl) ?? recipe.sourceUrl} ↗
               </a>
             </Card>
           )}

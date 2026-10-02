@@ -10,28 +10,37 @@ import { DraftError, draftToData } from "@/lib/recipe-draft";
 import { saveRecipe } from "@/lib/recipes";
 import { clientIp } from "@/lib/request-ip";
 import { familyViewerOrNull } from "@/lib/session";
+import { siteName } from "@/lib/site";
 import { recipeDraftSchema } from "@/lib/validation";
 import type { ActionState } from "@/lib/action-state";
 
 const NO_FAMILY = { error: "La sessione è scaduta o non fai più parte della famiglia: ricarica la pagina." };
 
+type PhotoChange = { key: string | null; credit: string | null };
+
 /**
- * La foto da salvare con la ricetta:
- *  - un file caricato vince su tutto;
+ * La foto da salvare con la ricetta, e il sito da scriverci sopra:
+ *  - un file caricato vince su tutto, e non ha fonte;
  *  - «Togli la foto» la rimuove;
- *  - altrimenti, per una ricetta importata, si scarica l'immagine trovata;
+ *  - altrimenti, per una ricetta importata, si scarica l'immagine trovata,
+ *    che porta il nome del sito della ricetta;
  *  - altrimenti resta quella che c'era (`undefined`).
  */
-async function photoFromForm(formData: FormData, importedImageUrl: string, viewerId: string): Promise<string | null | undefined> {
+async function photoFromForm(
+  formData: FormData,
+  importedImageUrl: string,
+  importedSite: string | null,
+  viewerId: string,
+): Promise<PhotoChange | undefined> {
   const file = formData.get("photo");
   if (file instanceof File && file.size > 0) {
     if (file.size > MAX_UPLOAD_BYTES) throw new PhotoError("La foto è troppo grande: al massimo 10 MB.");
-    return storeImage(Buffer.from(await file.arrayBuffer()));
+    return { key: await storeImage(Buffer.from(await file.arrayBuffer())), credit: null };
   }
-  if (formData.get("removePhoto") === "1") return null;
+  if (formData.get("removePhoto") === "1") return { key: null, credit: null };
   if (importedImageUrl) {
     try {
-      return await storeImageFromUrl(importedImageUrl);
+      return { key: await storeImageFromUrl(importedImageUrl), credit: importedSite };
     } catch (error) {
       // Una foto che non si scarica non deve far perdere la ricetta: si salva
       // senza, e la si può aggiungere dopo.
@@ -71,9 +80,9 @@ export async function saveRecipeAction(
     throw error;
   }
 
-  let imageKey: string | null | undefined;
+  let photo: PhotoChange | undefined;
   try {
-    imageKey = await photoFromForm(formData, recipeId ? "" : draft.data.importedImageUrl, viewer.id);
+    photo = await photoFromForm(formData, recipeId ? "" : draft.data.importedImageUrl, siteName(data.sourceUrl), viewer.id);
   } catch (error) {
     if (error instanceof PhotoError) {
       logEvent("warn", "foto_non_valida", { motivo: error.message, utente: viewer.id });
@@ -82,9 +91,16 @@ export async function saveRecipeAction(
     throw error;
   }
 
+  const imageKey = photo?.key;
   let result;
   try {
-    result = await saveRecipe(recipeId, { familyId: viewer.familyId, userId: viewer.id, data, imageKey });
+    result = await saveRecipe(recipeId, {
+      familyId: viewer.familyId,
+      userId: viewer.id,
+      data,
+      imageKey,
+      imageCredit: photo?.credit,
+    });
   } catch (error) {
     // La foto appena scritta non appartiene a nessuna ricetta: si toglie.
     if (imageKey) await deleteImage(imageKey);

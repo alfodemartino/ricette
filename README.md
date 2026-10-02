@@ -46,7 +46,9 @@ copie notturne.
   (`/ricette?q=zucchine&tag=veloce`).
 - **Foto** — una per ricetta, dal telefono o presa dalla fonte importata.
   Ogni immagine viene ruotata, ridotta a 1600 px e salvata in WebP. Le foto si
-  vedono solo dai membri della famiglia.
+  vedono solo dai membri della famiglia. Quella presa dalla fonte porta in
+  basso, in trasparenza, il nome del sito (`ricetteperbimby.it`), finché non
+  la si sostituisce con una foto propria.
 - **Import da link** — vedi [più sotto](#import-da-link).
 - **Aspetto in stile iOS** e **tema chiaro o scuro**, come finanze.
 

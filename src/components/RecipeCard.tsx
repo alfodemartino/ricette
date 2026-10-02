@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { Badge, Logo } from "@/components/ui";
+import { Badge, Logo, PhotoCredit } from "@/components/ui";
 import { categoryLabel, type RecipeCategory } from "@/lib/categories";
 import { formatMinutes, totalMinutes } from "@/lib/duration";
 
@@ -10,19 +10,27 @@ export type RecipeCardData = {
   prepMinutes: number | null;
   cookMinutes: number | null;
   imageKey: string | null;
+  imageCredit: string | null;
   sourceKind: "MANUALE" | "SITO" | "VIDEO";
   tags: { name: string }[];
 };
 
-/** La foto della ricetta, o al suo posto la pentola su fondo grigio. */
+/**
+ * La foto della ricetta, o al suo posto la pentola su fondo grigio. Una foto
+ * presa dall'import porta in basso il nome del sito (`credit`).
+ */
 export function RecipePhoto({
   imageKey,
   title,
+  credit = null,
+  creditClassName = "",
   className = "",
   iconClassName = "size-12",
 }: {
   imageKey: string | null;
   title: string;
+  credit?: string | null;
+  creditClassName?: string;
   className?: string;
   iconClassName?: string;
 }) {
@@ -34,10 +42,13 @@ export function RecipePhoto({
     );
   }
   return (
-    // Le foto arrivano dalla route protetta `/foto/…`, già ridotte in WebP:
-    // l'ottimizzazione di `next/image` non avrebbe niente da aggiungere.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={`/foto/${imageKey}`} alt={title} loading="lazy" className={`object-cover ${className}`} />
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Le foto arrivano dalla route protetta `/foto/…`, già ridotte in WebP:
+          l'ottimizzazione di `next/image` non avrebbe niente da aggiungere. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/foto/${imageKey}`} alt={title} loading="lazy" className="absolute inset-0 size-full object-cover" />
+      {credit && <PhotoCredit credit={credit} className={creditClassName} />}
+    </div>
   );
 }
 
@@ -57,6 +68,9 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
         <RecipePhoto
           imageKey={recipe.imageKey}
           title={recipe.title}
+          credit={recipe.imageCredit}
+          // Nella miniatura del telefono la scritta non si leggerebbe.
+          creditClassName="max-sm:hidden"
           className="size-20 shrink-0 rounded-control sm:aspect-[4/3] sm:size-auto sm:w-full sm:rounded-none"
           iconClassName="size-8 sm:size-12"
         />
