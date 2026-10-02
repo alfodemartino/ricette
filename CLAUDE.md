@@ -129,3 +129,10 @@ deploy`), mai `npm run db:migrate`, che è `prisma migrate dev`.
 Ricette e finanze condividono l'LXC ma niente altro: porte diverse (3001 e
 5433), progetti Compose, volumi, utenti e tunnel separati. Una modifica qui
 non deve mai richiedere di toccare finanze.
+
+## Proposte
+
+Le funzionalità proposte e non ancora realizzate, con le decisioni già prese
+e le note tecniche, stanno in [PROPOSTE.md](PROPOSTE.md). Una funzionalità
+nuova si progetta partendo da lì; quando una proposta viene realizzata o
+scartata, il file si aggiorna nella stessa PR.
