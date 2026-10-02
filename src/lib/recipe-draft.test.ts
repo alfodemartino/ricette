@@ -96,6 +96,11 @@ describe("draftFromImport", () => {
     ]);
   });
 
+  it("propone il tag bimby se la fonte ne parla", () => {
+    expect(draftFromImport(imported).tags).toEqual([]);
+    expect(draftFromImport({ ...imported, title: "Tiramisù Bimby" }).tags).toEqual(["bimby"]);
+  });
+
   it("una bozza importata e risalvata non perde niente", () => {
     const data = draftToData(draftFromImport(imported));
     const again = draftToData(

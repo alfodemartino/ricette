@@ -1,5 +1,6 @@
 import { guessCategory, isCategory, type RecipeCategory } from "@/lib/categories";
 import { parseIngredientLine, parseQuantity, quantityInput, sectionHeading } from "@/lib/ingredients";
+import { suggestedTags } from "@/lib/import/tags";
 import type { ImportedRecipe } from "@/lib/import/types";
 import { uniqueTags } from "@/lib/tags";
 
@@ -117,7 +118,7 @@ export function draftFromImport(imported: ImportedRecipe): RecipeDraft {
     notes: "",
     sourceUrl: imported.sourceUrl,
     sourceKind: imported.sourceKind,
-    tags: [],
+    tags: suggestedTags(imported),
     ingredients: ingredients.length > 0 ? withHeadings(ingredients, (item) => ingredientRowFromText(item.text)) : [emptyIngredient()],
     steps:
       imported.steps.length > 0
