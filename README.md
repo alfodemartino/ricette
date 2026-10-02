@@ -163,8 +163,8 @@ Vivono nel file `.env` accanto al `docker-compose.yml`, mai nell'immagine:
 | Variabile | Valore |
 | --- | --- |
 | `DATABASE_URL` | `postgresql://ricette:<POSTGRES_PASSWORD>@db:5432/ricette`, senza `?schema=public` (lo rifiutano `pg_dump` e `pg_restore`). Dentro Compose la porta resta 5432 |
-| `POSTGRES_PASSWORD` | La password dell'utente `ricette`, generata con `openssl rand -hex 24`. Va fissata prima del primo avvio |
-| `AUTH_SECRET` | Una chiave generata con `npx auth secret`, diversa da quella di finanze |
+| `POSTGRES_PASSWORD` | La password dell'utente `ricette`, generata con `openssl rand -hex 24`. Va fissata una volta sola, prima del primo avvio |
+| `AUTH_SECRET` | Una chiave generata con `openssl rand -base64 32` (o `npx auth secret`, dove c'è Node), diversa da quella di finanze |
 | `AUTH_URL` | Vuoto quando si accede dalla LAN, il dominio `https://…` quando l'app è pubblica |
 | `APP_PORT`, `DB_PORT` | Facoltative: le porte sull'LXC, 3001 e 5433 se assenti |
 | `DB_LAN_IP` | Facoltativo: l'IP di rete locale dell'LXC, per aprire il database ai client SQL della LAN. Vuoto significa solo `127.0.0.1` |
@@ -176,28 +176,89 @@ Su `AUTH_URL` vale quanto spiegato nel README di finanze: il codice imposta
 `trustHost: true`, quindi finché si accede per indirizzo IP va **lasciato
 vuoto**.
 
-### Primo avvio
+### Installazione, passo per passo
+
+È la procedura seguita per la prima installazione sull'LXC, con i controlli
+da fare a ogni passo.
+
+**1. Scarica il codice.** `/opt` appartiene a root: con `sudo` si crea solo la
+cartella, che poi si intesta al proprio utente. Clonando con `sudo`, i file
+sarebbero di root e ogni `./deploy.sh` (che fa `git pull`) vorrebbe di nuovo
+`sudo`. Se `/opt/finanze` è di root e lì si lavora sempre con `sudo`, conviene
+fare lo stesso anche qui.
 
 ```bash
+sudo mkdir /opt/ricette
+sudo chown "$USER": /opt/ricette
 git clone https://github.com/alfodemartino/ricette /opt/ricette
 cd /opt/ricette
-cp .env.example .env        # poi compila DATABASE_URL, POSTGRES_PASSWORD e AUTH_SECRET
-chmod 600 .env
+```
 
+**2. Crea il `.env` con password e chiave.** I valori non vanno presi da
+nessuna parte: si generano qui, **una volta sola e prima del primo avvio**.
+Postgres registra la password quando crea il volume: rigenerando il `.env`
+dopo, il database terrebbe quella vecchia (il rimedio è più sotto, in
+[Accedere al database con un client SQL](#accedere-al-database-con-un-client-sql)).
+`openssl` e non `npx auth secret` perché sull'LXC Node di solito non c'è.
+
+```bash
+cp .env.example .env
+PASS=$(openssl rand -hex 24)
+SECRET=$(openssl rand -base64 32)
+sed -i \
+  -e "s|^DATABASE_URL=.*|DATABASE_URL=\"postgresql://ricette:${PASS}@db:5432/ricette\"|" \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=\"${PASS}\"|" \
+  -e "s|^AUTH_SECRET=.*|AUTH_SECRET=\"${SECRET}\"|" \
+  -e "s|^AUTH_URL=.*|AUTH_URL=\"\"|" \
+  .env
+chmod 600 .env
+grep -E "^(DATABASE_URL|POSTGRES_PASSWORD|AUTH_SECRET|AUTH_URL)=" .env   # controllo
+```
+
+Una copia del `.env` va in un gestore di password: sta solo sull'LXC, non su
+git. Perdere `AUTH_SECRET` costa poco (tutti rifanno l'accesso); la password
+del database si può sempre reimpostare dall'interno del container.
+
+**3. Costruisci, applica le migrazioni e avvia.** Il primo build scarica le
+immagini di base e le dipendenze: qualche minuto.
+
+```bash
+free -h                          # memoria libera sull'LXC
 docker compose build
-docker compose run --rm migrate
+docker compose run --rm migrate  # deve finire con «All migrations have been successfully applied»
 docker compose up -d
 ```
 
-Poi si verifica dal più interno al più esterno:
+**4. Controlla che risponda,** dal più interno al più esterno:
 
 ```bash
-curl -fsS localhost:3001/api/health   # dentro l'LXC  -> {"ok":true}
+curl -fsS localhost:3001/api/health   # {"ok":true}
+docker compose ps                     # app e db «healthy»
 ```
 
-e `http://<ip-lxc>:3001` da un altro dispositivo della rete. Il primo utente
-che si registra crea la famiglia e trova il codice di invito nella pagina
-**La mia famiglia** (menu dell'account).
+poi `http://<ip-lxc>:3001` da un altro dispositivo della rete.
+
+**5. Primo accesso.** Il primo utente si registra e crea la famiglia; il
+codice di invito si legge in **La mia famiglia** (menu dell'account). Gli
+altri si registrano e lo inseriscono in «Entra in una famiglia».
+
+**6. Attiva le copie notturne** e fai subito la prima, come descritto in
+[Copia giornaliera di database e foto](#copia-giornaliera-di-database-e-foto).
+In `/var/backups/ricette` devono comparire un `ricette-<data>.dump` e un
+`foto-<data>.tar.gz`.
+
+**7. Sposta il backup di Proxmox** dell'LXC **dopo le 3:45**, perché includa le
+copie notturne di entrambe le app.
+
+**8. Prova l'import** con una ricetta di un sito (per esempio GialloZafferano)
+e con un video YouTube che abbia la ricetta nella descrizione.
+
+**9. Facoltativi:** l'accesso al database da un client SQL della LAN
+([più sotto](#accedere-al-database-con-un-client-sql)) e l'esposizione su
+internet con il tunnel ([qui](#esporre-lapp-su-internet)).
+
+Da qui in poi gli aggiornamenti sono un comando solo, `./deploy.sh` (vedi
+[Rilasciare una nuova versione](#rilasciare-una-nuova-versione)).
 
 ### Esporre l'app su internet
 
@@ -315,12 +376,70 @@ ambiente di prova; vale comunque la pena farlo una volta a freddo.
 
 ### Accedere al database con un client SQL
 
-Come in finanze, ma sulla porta **5433**: senza `DB_LAN_IP` solo da
-`127.0.0.1` (tunnel SSH: `ssh -N -L 5433:127.0.0.1:5433 <utente>@<lxc>`), con
-l'IP dell'LXC in `DB_LAN_IP` direttamente dalla LAN. Database e utente
-`ricette`, password quella di `POSTGRES_PASSWORD`. Le avvertenze del README di
-finanze (firewall dell'LXC scavalcato da Docker, IP fisso, nessun inoltro sul
-router) valgono uguali.
+Il database di ricette risponde sulla porta **5433** dell'LXC: la 5432 è
+quella di finanze. Senza `DB_LAN_IP` la porta ascolta solo su `127.0.0.1`,
+quindi dal PC non si raggiunge. Per aprirla alla rete di casa si aggiunge al
+`.env` l'IP dell'LXC e si ricrea il solo container del database (i dati
+restano nel volume, l'app si ricollega da sola):
+
+```bash
+cd /opt/ricette
+echo 'DB_LAN_IP="<ip-lxc>"' >> .env
+docker compose up -d db
+docker compose ps db        # in PORTS: <ip-lxc>:5433->5432/tcp
+```
+
+In alternativa, senza aprire niente, un tunnel SSH:
+`ssh -N -L 5433:127.0.0.1:5433 <utente>@<ip-lxc>`, e nel client host
+`localhost`.
+
+| Campo | Valore |
+| --- | --- |
+| Host | L'IP dell'LXC (`localhost` con il tunnel) |
+| Porta | **5433** |
+| Database | `ricette` |
+| Utente | `ricette`, non `postgres` né `finanze` |
+| Password | Il valore di `POSTGRES_PASSWORD`, **senza le virgolette** |
+| SSL | Disattivato |
+
+La password già senza virgolette:
+`grep '^POSTGRES_PASSWORD=' /opt/ricette/.env | cut -d= -f2 | tr -d '"'`.
+
+Se qualcosa non va:
+
+| Sintomo | Causa e rimedio |
+| --- | --- |
+| «Connection refused» sulla 5433 | Manca `DB_LAN_IP`, oppure l'IP dell'LXC è cambiato: vedi sopra |
+| Timeout | Il firewall di Proxmox sull'LXC blocca la 5433: va aperta lì, solo per i dispositivi che servono |
+| «password authentication failed» | Il client sta parlando con il database di **finanze** (porta 5432, che quell'utente non lo conosce), oppure la password è stata copiata con le virgolette, oppure l'utente non è `ricette` |
+
+Per escludere che sia la password del `.env`:
+
+```bash
+docker compose run --rm migrate   # «No pending migrations to apply» = la password è giusta
+```
+
+Se invece risponde «Authentication failed», il database ha una password
+diversa dal `.env` (succede rigenerandolo dopo il primo avvio). Si riallinea
+dall'interno del container, dove la password non serve:
+
+```bash
+PASS=$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2 | tr -d '"')
+docker compose exec db psql -U ricette -d ricette -c "ALTER USER ricette PASSWORD '$PASS'"
+```
+
+Tre avvertenze:
+
+- **Il firewall dell'LXC non conta**: Docker scrive le sue regole prima di
+  quelle di `ufw`, quindi una porta pubblicata passa comunque. Per restringere
+  a certi dispositivi si usa il firewall di Proxmox.
+- **L'IP deve essere fisso** (prenotazione DHCP sul router o indirizzo statico
+  in Proxmox): se cambia, `db` non riesce a legarsi alla porta, non parte, e
+  l'app si ferma con lui.
+- **Fuori da internet lo tiene il router**: nessun inoltro della 5433.
+
+L'utente `ricette` è proprietario del database e può cancellare tutto: prima
+di modificare dati a mano, `sudo ./backup-db.sh`.
 
 ### Aggiornare Postgres a una versione maggiore
 

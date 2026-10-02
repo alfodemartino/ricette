@@ -17,6 +17,20 @@ non lancia `./deploy.sh` sulla macchina. Su `main` va solo ciò che è pronto.
 Commit, PR, commenti nel codice e testi dell'interfaccia sono **in italiano**.
 Il messaggio di commit spiega *perché* si cambia qualcosa, non solo cosa.
 
+Quando cambia qualcosa nell'installazione o nel rilascio (variabili, porte,
+comandi, servizi), si aggiorna anche «Installazione, passo per passo» nel
+README: è la procedura che si segue davvero sull'LXC, e deve restare
+eseguibile dall'inizio alla fine così com'è scritta.
+
+## Dati personali
+
+Il repository è **pubblico**. Nel codice, nei testi d'esempio dei form, nei
+dati di prova, nei test e nella documentazione non vanno nomi, cognomi,
+email, indirizzi IP o altri dati reali, nemmeno ricavati dal nome
+dell'account GitHub. Gli esempi usano nomi generici («Famiglia Rossi»,
+«Anna», «Bruno», `192.168.1.50`, `<ip-lxc>`). I valori veri stanno solo nel
+`.env` dell'LXC.
+
 ## Prima di ogni push
 
 Vanno verdi tutti e quattro (li ripete il workflow `Verifica` sulle PR):
