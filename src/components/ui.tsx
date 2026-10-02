@@ -64,6 +64,8 @@ const buttonSizes = {
   /* 44 px di altezza: il bersaglio minimo per un dito, secondo Apple. */
   md: "min-h-11 px-4 py-2.5 text-[15px]",
   sm: "px-3 py-1.5 text-[13px]",
+  /* Il quadrato per un'icona sola, alto quanto i pulsanti `md` accanto. */
+  icon: "size-11",
 } as const;
 
 export type ButtonVariant = keyof typeof buttonVariants;
@@ -249,6 +251,26 @@ export function MoreIcon({ className = "" }: { className?: string }) {
       <circle cx="5" cy="12" r="1.8" />
       <circle cx="12" cy="12" r="1.8" />
       <circle cx="19" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
+/** L'icona di condivisione di iOS: il riquadro aperto in alto, con la freccia che esce. */
+export function ShareIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`size-5 ${className}`}
+    >
+      <path d="M12 2.5v12" />
+      <path d="m8 6.5 4-4 4 4" />
+      <path d="M9 9.5H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2" />
     </svg>
   );
 }

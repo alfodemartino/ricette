@@ -43,8 +43,13 @@ export async function familyViewerOrNull(): Promise<FamilyViewer | null> {
   return viewer?.familyId ? (viewer as FamilyViewer) : null;
 }
 
+/** Vero se il valore ha la forma degli id del database. */
+export function isId(id: unknown): id is string {
+  return typeof id === "string" && /^[a-z0-9]{20,40}$/i.test(id);
+}
+
 /** Un parametro dell'indirizzo che non può essere un id si tratta come «non trovato». */
 export function assertId(id: string): string {
-  if (!/^[a-z0-9]{20,40}$/i.test(id)) notFound();
+  if (!isId(id)) notFound();
   return id;
 }

@@ -1,6 +1,7 @@
 import { NavLink } from "@/components/NavLink";
 import { RecipeCard } from "@/components/RecipeCard";
 import { RecipeSearch } from "@/components/RecipeSearch";
+import { HideWhileSelecting, ShareRecipesProvider, ShareSelectionToggle } from "@/components/ShareRecipes";
 import { ButtonLink, EmptyState } from "@/components/ui";
 import { CATEGORIES } from "@/lib/categories";
 import { filterRecipes, filtersHref, hasFilters, parseFilters, TIME_FILTERS, type RecipeFilters } from "@/lib/recipe-search";
@@ -44,96 +45,103 @@ export default async function RecipesPage({
   const activeTags = new Set(filters.tags.map(tagKey));
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em]">Ricette</h1>
-          <p className="text-[13px] text-label-secondary">
-            {recipes.length === 1 ? "1 ricetta" : `${recipes.length} ricette`} nel ricettario di famiglia
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <ButtonLink href="/ricette/importa" variant="secondary">
-            Importa da link
-          </ButtonLink>
-          <ButtonLink href="/ricette/nuova">Nuova ricetta</ButtonLink>
-        </div>
-      </header>
-
-      {recipes.length === 0 ? (
-        <div className="rounded-card bg-surface">
-          <EmptyState>
-            Il ricettario è ancora vuoto. Scrivi la prima ricetta o importala da un sito o da un video.
-          </EmptyState>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-3">
-            <RecipeSearch filters={filters} />
-
-            {/* Le pastiglie scorrono in orizzontale sul telefono invece di
-                andare a capo in cinque righe. */}
-            <div className="scroll-x flex gap-2 pb-1">
-              <Chip href={filtersHref({ ...filters, category: null })} active={!filters.category}>
-                Tutte
-              </Chip>
-              {CATEGORIES.map((category) => (
-                <Chip
-                  key={category.id}
-                  href={filtersHref({ ...filters, category: filters.category === category.id ? null : category.id })}
-                  active={filters.category === category.id}
-                >
-                  {category.plural}
-                </Chip>
-              ))}
-            </div>
-
-            <div className="scroll-x flex gap-2 pb-1">
-              {TIME_FILTERS.map((minutes) => (
-                <Chip
-                  key={minutes}
-                  href={filtersHref({ ...filters, maxMinutes: filters.maxMinutes === minutes ? null : minutes })}
-                  active={filters.maxMinutes === minutes}
-                >
-                  Entro {minutes === 60 ? "1 ora" : `${minutes} min`}
-                </Chip>
-              ))}
-              {tags.map((tag) => (
-                <Chip key={tag.name} href={filtersHref(toggleTag(filters, tag.name))} active={activeTags.has(tagKey(tag.name))}>
-                  #{tag.name}
-                </Chip>
-              ))}
-            </div>
+    // La selezione delle ricette da mandare resta mentre si cerca e si filtra:
+    // se ne possono scegliere da ricerche diverse per lo stesso messaggio.
+    <ShareRecipesProvider>
+      <div className="space-y-5">
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-[28px] font-bold tracking-[-0.02em]">Ricette</h1>
+            <p className="text-[13px] text-label-secondary">
+              {recipes.length === 1 ? "1 ricetta" : `${recipes.length} ricette`} nel ricettario di famiglia
+            </p>
           </div>
+          <div className="flex gap-2">
+            {recipes.length > 0 && <ShareSelectionToggle />}
+            <HideWhileSelecting>
+              <ButtonLink href="/ricette/importa" variant="secondary">
+                Importa da link
+              </ButtonLink>
+              <ButtonLink href="/ricette/nuova">Nuova ricetta</ButtonLink>
+            </HideWhileSelecting>
+          </div>
+        </header>
 
-          {visible.length === 0 ? (
-            <div className="rounded-card bg-surface">
-              <EmptyState>
-                Nessuna ricetta corrisponde alla ricerca.{" "}
-                <NavLink href="/ricette" className="font-semibold text-tint hover:underline">
-                  Azzera i filtri
-                </NavLink>
-              </EmptyState>
-            </div>
-          ) : (
-            <>
-              {hasFilters(filters) && (
-                <p className="px-1 text-[13px] text-label-secondary">
-                  {visible.length === 1 ? "1 ricetta trovata" : `${visible.length} ricette trovate`} ·{" "}
-                  <NavLink href="/ricette" className="text-tint hover:underline">
-                    azzera i filtri
-                  </NavLink>
-                </p>
-              )}
-              <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-                {visible.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} />
+        {recipes.length === 0 ? (
+          <div className="rounded-card bg-surface">
+            <EmptyState>
+              Il ricettario è ancora vuoto. Scrivi la prima ricetta o importala da un sito o da un video.
+            </EmptyState>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <RecipeSearch filters={filters} />
+
+              {/* Le pastiglie scorrono in orizzontale sul telefono invece di
+                  andare a capo in cinque righe. */}
+              <div className="scroll-x flex gap-2 pb-1">
+                <Chip href={filtersHref({ ...filters, category: null })} active={!filters.category}>
+                  Tutte
+                </Chip>
+                {CATEGORIES.map((category) => (
+                  <Chip
+                    key={category.id}
+                    href={filtersHref({ ...filters, category: filters.category === category.id ? null : category.id })}
+                    active={filters.category === category.id}
+                  >
+                    {category.plural}
+                  </Chip>
                 ))}
-              </ul>
-            </>
-          )}
-        </>
-      )}
-    </div>
+              </div>
+
+              <div className="scroll-x flex gap-2 pb-1">
+                {TIME_FILTERS.map((minutes) => (
+                  <Chip
+                    key={minutes}
+                    href={filtersHref({ ...filters, maxMinutes: filters.maxMinutes === minutes ? null : minutes })}
+                    active={filters.maxMinutes === minutes}
+                  >
+                    Entro {minutes === 60 ? "1 ora" : `${minutes} min`}
+                  </Chip>
+                ))}
+                {tags.map((tag) => (
+                  <Chip key={tag.name} href={filtersHref(toggleTag(filters, tag.name))} active={activeTags.has(tagKey(tag.name))}>
+                    #{tag.name}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            {visible.length === 0 ? (
+              <div className="rounded-card bg-surface">
+                <EmptyState>
+                  Nessuna ricetta corrisponde alla ricerca.{" "}
+                  <NavLink href="/ricette" className="font-semibold text-tint hover:underline">
+                    Azzera i filtri
+                  </NavLink>
+                </EmptyState>
+              </div>
+            ) : (
+              <>
+                {hasFilters(filters) && (
+                  <p className="px-1 text-[13px] text-label-secondary">
+                    {visible.length === 1 ? "1 ricetta trovata" : `${visible.length} ricette trovate`} ·{" "}
+                    <NavLink href="/ricette" className="text-tint hover:underline">
+                      azzera i filtri
+                    </NavLink>
+                  </p>
+                )}
+                <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                  {visible.map((recipe) => (
+                    <RecipeCard key={recipe.id} recipe={recipe} />
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </ShareRecipesProvider>
   );
 }
