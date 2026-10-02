@@ -25,6 +25,16 @@ function bySection<T extends { section: string | null }>(items: T[]): { section:
   return groups;
 }
 
+/** La freccia che torna indietro di iOS, per riportare le persone a quelle della ricetta. */
+function ResetIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M4.5 8.5a6 6 0 1 1 .8 5" />
+      <path d="M4 4v4.5h4.5" />
+    </svg>
+  );
+}
+
 /**
  * La sezione «Ingredienti» con il selettore delle porzioni. Il ricalcolo è
  * tutto nel browser: cambiare le persone non tocca la ricetta salvata.
@@ -40,6 +50,17 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
         {canScale && (
           // Lo stepper di iOS: meno e più in una pista grigia, il numero in mezzo.
           <div className="flex items-center gap-2 text-[13px] text-label-secondary">
+            {people !== servings && (
+              <button
+                type="button"
+                aria-label={`Torna a ${servings} ${servings === 1 ? "persona" : "persone"}`}
+                title="Ripristina le quantità della ricetta"
+                onClick={() => setPeople(servings)}
+                className="flex size-9 items-center justify-center rounded-full text-tint transition hover:bg-fill"
+              >
+                <ResetIcon className="size-[18px]" />
+              </button>
+            )}
             <span>Persone</span>
             <div className="flex items-center rounded-control bg-fill">
               <button
@@ -100,10 +121,7 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
       </div>
       {canScale && people !== servings && (
         <p className="mt-2 px-1 text-[12px] text-label-secondary">
-          Quantità ricalcolate da {servings} a {people} {people === 1 ? "persona" : "persone"}.{" "}
-          <button type="button" onClick={() => setPeople(servings)} className="text-tint hover:underline">
-            Ripristina
-          </button>
+          Quantità ricalcolate da {servings} a {people} {people === 1 ? "persona" : "persone"}.
         </p>
       )}
     </section>
