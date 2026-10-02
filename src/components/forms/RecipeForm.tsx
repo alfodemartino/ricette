@@ -143,7 +143,7 @@ function IngredientsEditor({
             <li key={row.uid} className="flex items-start gap-2">
               {/* Sul telefono quantità e unità stanno sopra al nome: in una riga
                   sola le caselle sarebbero troppo strette per scriverci. */}
-              <div className="grid flex-1 grid-cols-[5rem_6.5rem_1fr] gap-2 max-sm:grid-cols-2">
+              <div className="grid flex-1 grid-cols-[4.5rem_9rem_1fr] gap-2 max-sm:grid-cols-2">
                 <input
                   value={row.quantity}
                   onChange={(event) => update(index, { quantity: event.target.value })}
