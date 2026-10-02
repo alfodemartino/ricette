@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+/*
+ * `dark:` segue le preferenze del sistema, ma la scelta esplicita dell'utente
+ * (attributo `data-theme` su <html>, impostato da ThemeToggle) ha la priorità.
+ * `:where()` non aggiunge specificità: l'ordine delle utility resta quello di Tailwind.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(html:not([data-theme="light"]), html:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Palette di sistema in stile iOS. I nomi sono semantici — sfondo, etichetta,
+ * separatore — e non dicono di che colore sono: il valore lo decide il tema.
+ * Così una utility come `bg-surface` è già giusta sia in chiaro sia in scuro e
+ * non serve accompagnarla con la sua variante `dark:`.
+ *
+ * I tre blocchi qui sotto ripetono la stessa logica del `@custom-variant`:
+ * valori chiari di base, valori scuri quando li chiede il sistema e nessuno ha
+ * scelto, valori scuri quando la scelta è esplicita (ultimo, così vince).
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Sfondi: la pagina è grigia, i riquadri dei contenuti sono bianchi. */
+  --ui-grouped: #f2f2f7;
+  --ui-surface: #ffffff;
+  --ui-raised: #ffffff;
+  --ui-fill: rgb(118 118 128 / 0.12);
+  --ui-fill-strong: rgb(118 118 128 / 0.2);
+
+  /* Testo */
+  --ui-label: #000000;
+  --ui-label-secondary: rgb(60 60 67 / 0.6);
+  --ui-label-tertiary: rgb(60 60 67 / 0.32);
+
+  /* Righe di separazione: spesse un capello, mai un bordo pieno. */
+  --ui-separator: rgb(60 60 67 / 0.29);
+
+  /* Colori di sistema, nella variante leggibile su fondo chiaro. */
+  --ui-tint: #007aff;
+  --ui-positive: #248a3d;
+  --ui-negative: #d70015;
+  /* L'arancio di sistema: segna le note e gli avvisi sugli import parziali. */
+  --ui-warning: #c93400;
+
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --ui-grouped: #000000;
+    --ui-surface: #1c1c1e;
+    --ui-raised: #636366;
+    --ui-fill: rgb(118 118 128 / 0.24);
+    --ui-fill-strong: rgb(118 118 128 / 0.36);
+
+    --ui-label: #ffffff;
+    --ui-label-secondary: rgb(235 235 245 / 0.6);
+    --ui-label-tertiary: rgb(235 235 245 / 0.32);
+
+    --ui-separator: rgb(84 84 88 / 0.65);
+
+    --ui-tint: #0a84ff;
+    --ui-positive: #30d158;
+    --ui-negative: #ff453a;
+    --ui-warning: #ff9f0a;
+  }
+}
+
+html[data-theme="dark"] {
+  --ui-grouped: #000000;
+  --ui-surface: #1c1c1e;
+  --ui-raised: #636366;
+  --ui-fill: rgb(118 118 128 / 0.24);
+  --ui-fill-strong: rgb(118 118 128 / 0.36);
+
+  --ui-label: #ffffff;
+  --ui-label-secondary: rgb(235 235 245 / 0.6);
+  --ui-label-tertiary: rgb(235 235 245 / 0.32);
+
+  --ui-separator: rgb(84 84 88 / 0.65);
+
+  --ui-tint: #0a84ff;
+  --ui-positive: #30d158;
+  --ui-negative: #ff453a;
+  --ui-warning: #ff9f0a;
+}
+
+/*
+ * `inline` è quello che fa funzionare i temi: le utility puntano alla variabile
+ * viva invece di copiarne il valore, quindi cambiano da sole quando cambia il tema.
+ */
+@theme inline {
+  /* San Francisco dove c'è (Apple), l'equivalente di sistema altrove. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-grouped: var(--ui-grouped);
+  --color-surface: var(--ui-surface);
+  --color-raised: var(--ui-raised);
+  --color-fill: var(--ui-fill);
+  --color-fill-strong: var(--ui-fill-strong);
+
+  --color-label: var(--ui-label);
+  --color-label-secondary: var(--ui-label-secondary);
+  --color-label-tertiary: var(--ui-label-tertiary);
+
+  --color-separator: var(--ui-separator);
+
+  --color-tint: var(--ui-tint);
+  --color-positive: var(--ui-positive);
+  --color-negative: var(--ui-negative);
+  --color-warning: var(--ui-warning);
+
+
+  /* I due raggi di iOS: i controlli sono più stretti dei riquadri. */
+  --radius-control: 0.625rem;
+  --radius-card: 0.875rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html {
+  /* Su iPhone il testo non deve ingrandirsi da solo ruotando lo schermo. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-grouped text-label antialiased;
+  /* Il tocco lo segnalano gli stati `active:`, non il rettangolo del browser. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * La tendina di un `select` la disegna il browser fuori dalla pagina, e per i
+ * colori guarda il controllo: il testo lo eredita (bianco, in scuro) ma non lo
+ * sfondo, che il preflight di Tailwind azzera a `transparent`. Restava così il
+ * bianco di sistema, e i nomi non selezionati sparivano — bianco su bianco.
+ * Fondo e testo dichiarati qui, dai token del tema, valgono in entrambi i temi;
+ * stanno nel livello `base` perché sul controllo chiuso continui a vincere la
+ * utility dei campi (`bg-fill`), che il livello `utilities` applica dopo.
+ */
+@layer base {
+  select,
+  option {
+    background-color: var(--ui-surface);
+    color: var(--ui-label);
+  }
+}
+
+/* Tabelle e blocchi larghi non devono far scorrere la pagina in orizzontale. */
+.scroll-x {
+  @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+}
+
+/*
+ * L'impalcatura delle pagine in caricamento resta invisibile per un momento,
+ * poi sfuma. È lo stesso patto dei 150 ms dell'overlay (`src/lib/loading.ts`):
+ * quando il server risponde in fretta il grigio non fa in tempo a comparire,
+ * e al suo posto arriva direttamente la pagina. Qui l'attesa non può stare nel
+ * codice — il fallback lo monta Next — quindi la fa il ritardo dell'animazione,
+ * con `both` a tenere l'opacità a zero finché non parte.
+ */
+.skeleton-in {
+  animation: skeleton-in 0.2s ease-out 0.15s both;
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Chi ha chiesto meno animazioni tiene comunque il ritardo: senza, tornerebbe
+   il lampo di grigio che l'attesa serve proprio a evitare. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-in {
+    animation-duration: 0s;
+  }
+}
+
+/*
+ * L'indicatore di attività di iOS: una corona che sfuma e gira a scatti, uno
+ * per ognuna delle otto lamelle. Prende il colore dal testo (`currentColor`).
+ */
+.ios-spinner {
+  border-radius: 9999px;
+  background: conic-gradient(from 90deg, color-mix(in srgb, currentColor 6%, transparent), currentColor);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: ios-spinner-turn 0.8s steps(8, end) infinite;
+}
+
+@keyframes ios-spinner-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
