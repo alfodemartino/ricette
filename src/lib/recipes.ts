@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { sourceKey } from "@/lib/import/url";
 import type { RecipeData } from "@/lib/recipe-draft";
+import { shareableRecipe } from "@/lib/share";
 import { tagKey } from "@/lib/tags";
 
 /**
@@ -41,6 +42,36 @@ export async function getFamilyRecipe(id: string, familyId: string) {
       createdBy: { select: { name: true } },
       updatedBy: { select: { name: true } },
     },
+  });
+}
+
+/**
+ * Le ricette da mandare come messaggio, nell'ordine in cui sono state scelte.
+ * Quelle che non ci sono più, o che non sono della famiglia, restano fuori.
+ */
+export async function listFamilyRecipesToShare(familyId: string, ids: string[]) {
+  const found = await prisma.recipe.findMany({
+    where: { familyId, id: { in: ids } },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+      servings: true,
+      prepMinutes: true,
+      cookMinutes: true,
+      notes: true,
+      sourceUrl: true,
+      ingredients: {
+        orderBy: { position: "asc" },
+        select: { section: true, quantity: true, unit: true, name: true, note: true },
+      },
+      steps: { orderBy: { position: "asc" }, select: { section: true, text: true } },
+    },
+  });
+  const byId = new Map(found.map((recipe) => [recipe.id, recipe]));
+  return ids.flatMap((id) => {
+    const recipe = byId.get(id);
+    return recipe ? [shareableRecipe(recipe)] : [];
   });
 }
 

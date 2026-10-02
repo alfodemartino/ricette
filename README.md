@@ -35,6 +35,14 @@ copie notturne.
   arrotondati come su una bilancia, uova e cucchiai in frazioni di casa (½, ⅓,
   ¾). «q.b.» resta «q.b.».
 - **In cucina** — toccando un passo del procedimento lo si segna come fatto.
+- **Condivisione** — una ricetta parte come messaggio di testo: titolo,
+  ingredienti con le quantità per le persone scelte, procedimento, note e
+  fonte, con un'emoji davanti a ogni sezione. Non un link, perché fuori dalla
+  famiglia la ricetta non si apre. Si condivide dalla ricetta, oppure
+  dall'elenco: l'icona su una scheda manda quella ricetta, il tasto in
+  testata apre la selezione per mandarne diverse in un messaggio solo. Dal
+  dominio HTTPS «Invia con…» apre il pannello di condivisione del telefono;
+  dalla rete di casa, in http, restano WhatsApp, la copia e l'email.
 - **Categorie e tag** — la portata (antipasto, primo, secondo, contorno,
   piatto unico, dolce, pane e lievitati, salse, bevande, altro) e tag liberi
   della famiglia (#veloce, #vegetariano). I tag che non usa più nessuna ricetta
@@ -488,6 +496,7 @@ prisma/seed.ts                Dati di esempio
 src/lib/ingredients.ts        Lettura delle righe di ingredienti, unità, porzioni e formattazione
 src/lib/recipe-draft.ts       La bozza del form: da import, da database, verso il database
 src/lib/recipe-search.ts      Ricerca e filtri dell'elenco
+src/lib/share.ts              La ricetta come messaggio da condividere, e i link per WhatsApp e l'email
 src/lib/categories.ts         Le portate e il riconoscimento dalle etichette dei siti
 src/lib/tags.ts               Tag liberi: normalizzazione e doppioni
 src/lib/duration.ts           Tempi: durate ISO 8601 e formattazione

@@ -172,6 +172,51 @@ body {
   }
 }
 
+/*
+ * Con un pannello aperto (un `<dialog>` modale) la pagina sotto resta ferma:
+ * sul telefono, arrivati in fondo al messaggio da condividere, il dito non
+ * deve trascinare l'elenco che sta dietro. `scrollbar-gutter` tiene il posto
+ * della barra di scorrimento, così sul computer la pagina non salta di lato.
+ */
+html:has(dialog:modal) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+/*
+ * Il pannello di condivisione sale dal basso come i fogli di iOS; sul
+ * computer, dove sta al centro, sale appena mentre compare. L'animazione
+ * riparte a ogni apertura, perché il `<dialog>` chiuso non viene disegnato.
+ */
+.sheet-in {
+  animation: sheet-in 0.3s ease-out;
+}
+
+@media (min-width: 40rem) {
+  .sheet-in {
+    animation-name: sheet-in-center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-in {
+    animation: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-in-center {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+}
+
 /* Tabelle e blocchi larghi non devono far scorrere la pagina in orizzontale. */
 .scroll-x {
   @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;

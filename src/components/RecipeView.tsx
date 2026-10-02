@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { formatQuantity, scaleQuantity, unitLabel } from "@/lib/ingredients";
 
 type Ingredient = {
@@ -36,11 +36,61 @@ function ResetIcon({ className = "" }: { className?: string }) {
 }
 
 /**
+ * Le persone scelte nella pagina della ricetta. Stanno sopra la sezione degli
+ * ingredienti perché servono anche a «Condividi», in testata: il messaggio
+ * parte con le quantità che si stanno guardando.
+ */
+const PeopleContext = createContext<[number, Dispatch<SetStateAction<number>>] | null>(null);
+
+export function RecipePeople({ servings, children }: { servings: number | null; children: ReactNode }) {
+  const people = useState(servings ?? 0);
+  return <PeopleContext.Provider value={people}>{children}</PeopleContext.Provider>;
+}
+
+/** Le persone scelte nella pagina; `null` se la ricetta non dice per quante è. */
+export function useRecipePeople(): number | null {
+  const people = useContext(PeopleContext)?.[0];
+  return people && people > 0 ? people : null;
+}
+
+/** Lo stepper di iOS: meno e più in una pista grigia, il numero in mezzo. */
+export function PeopleStepper({ value, onChange }: { value: number; onChange: (people: number) => void }) {
+  return (
+    <div className="flex items-center rounded-control bg-fill">
+      <button
+        type="button"
+        aria-label="Una persona in meno"
+        disabled={value <= 1}
+        onClick={() => onChange(Math.max(1, value - 1))}
+        className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
+      >
+        −
+      </button>
+      <span aria-live="polite" className="min-w-7 text-center text-[15px] font-semibold text-label tabular-nums">
+        {value}
+      </span>
+      <button
+        type="button"
+        aria-label="Una persona in più"
+        disabled={value >= 99}
+        onClick={() => onChange(Math.min(99, value + 1))}
+        className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+/**
  * La sezione «Ingredienti» con il selettore delle porzioni. Il ricalcolo è
  * tutto nel browser: cambiare le persone non tocca la ricetta salvata.
  */
 export function IngredientsSection({ ingredients, servings }: { ingredients: Ingredient[]; servings: number | null }) {
-  const [people, setPeople] = useState(servings ?? 0);
+  // Le persone sono quelle della pagina, se c'è `RecipePeople`; altrimenti della sezione.
+  const shared = useContext(PeopleContext);
+  const own = useState(servings ?? 0);
+  const [people, setPeople] = shared ?? own;
   const canScale = servings !== null && servings > 0;
 
   return (
@@ -48,7 +98,6 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
       <header className="mb-2 flex flex-wrap items-center justify-between gap-3 px-1">
         <h2 className="text-[15px] font-semibold tracking-tight">Ingredienti</h2>
         {canScale && (
-          // Lo stepper di iOS: meno e più in una pista grigia, il numero in mezzo.
           <div className="flex items-center gap-2 text-[13px] text-label-secondary">
             {people !== servings && (
               <button
@@ -62,29 +111,7 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
               </button>
             )}
             <span>Persone</span>
-            <div className="flex items-center rounded-control bg-fill">
-              <button
-                type="button"
-                aria-label="Una persona in meno"
-                disabled={people <= 1}
-                onClick={() => setPeople((count) => Math.max(1, count - 1))}
-                className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
-              >
-                −
-              </button>
-              <span aria-live="polite" className="min-w-7 text-center text-[15px] font-semibold text-label tabular-nums">
-                {people}
-              </span>
-              <button
-                type="button"
-                aria-label="Una persona in più"
-                disabled={people >= 99}
-                onClick={() => setPeople((count) => Math.min(99, count + 1))}
-                className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
-              >
-                +
-              </button>
-            </div>
+            <PeopleStepper value={people} onChange={setPeople} />
           </div>
         )}
       </header>

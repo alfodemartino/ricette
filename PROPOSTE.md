@@ -1,9 +1,10 @@
 # Proposte di funzionalità
 
 Analisi dell'app fatta a ottobre 2026 sul codice di `main` (commit `69d5cfd`),
-con un confronto con le app di ricette più diffuse. Niente di quanto segue è
-ancora implementato: sono proposte da riprendere. Quando una proposta viene
-realizzata o scartata, questo file si aggiorna nella stessa PR.
+con un confronto con le app di ricette più diffuse. A parte quanto elencato
+in [Realizzate](#realizzate), niente di quanto segue è ancora implementato:
+sono proposte da riprendere. Quando una proposta viene realizzata o
+scartata, questo file si aggiorna nella stessa PR.
 
 ## Decisioni già prese
 
@@ -92,15 +93,24 @@ ripieghi (testo selezionabile, link `wa.me`) o una breve indicazione.
 6. **Preferite e diario «l'abbiamo cucinata»** (data, voto, nota), con gli
    ordinamenti «cucinate di recente», «non la facciamo da un po'», «A-Z».
 7. **Menu della settimana**, che riempie la lista della spesa.
-8. **Stampa** (con i colori del tema chiaro anche in tema scuro), **invio
-   della ricetta come testo** con le quantità per le persone scelte,
+8. **Stampa** (con i colori del tema chiaro anche in tema scuro) e
    **installazione come app** (`src/app/manifest.ts`, `share_target` su
-   Android).
+   Android). L'invio della ricetta come testo è fatto: vedi
+   [Realizzate](#realizzate).
 9. **Storico delle modifiche** e **avviso di modifica contemporanea**
    (confronto di `updatedAt` al salvataggio).
 10. Più avanti: ricette collegate (ragù, besciamella, frolla), più foto per
     ricetta, «cosa cucino con…», esportazione completa (JSON schema.org e
     foto), conversione delle unità americane.
+
+### Realizzate
+
+- **Invio della ricetta come testo** (ottobre 2026): «Condividi» nella
+  ricetta e nell'elenco, con l'icona su ogni scheda e la selezione di più
+  ricette. Il messaggio ha un'emoji davanti a ogni sezione e le quantità per
+  le persone scelte; lo compone `src/lib/share.ts`. Per mandarlo c'è il
+  pannello del telefono in HTTPS, mentre WhatsApp (`wa.me`), la copia e
+  l'email funzionano anche in http.
 
 ### Accantonate
 
@@ -172,6 +182,9 @@ spariscono.
   (WhatsApp, email, note) diventa `ImportedRecipe`; titolo dalla prima riga
   se è breve e non è un ingrediente; il resto con `parseRecipeText`; se
   mancano i passi, le frasi dopo l'elenco diventano passi.
+- Va riletto anche il messaggio di «Condividi»: un test di
+  `src/lib/share.test.ts` verifica già che `parseRecipeText` ne ricavi
+  ingredienti, passi e porzioni. Al titolo va tolta l'emoji 🍽️ in testa.
 - `ImportedRecipe` ammette `sourceKind` `MANUALE` e `sourceUrl` vuoto.
 - La coda di `importRecipe` (link nel testo, `enhancers`, controllo «nessuna
   ricetta») diventa una funzione comune, usata anche da
