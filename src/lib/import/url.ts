@@ -171,3 +171,19 @@ export function sourceKey(raw: string): string | null {
     .join("&");
   return `${host}${path}${params ? `?${params}` : ""}`;
 }
+
+/** Pagine di accesso o di consenso: ci finiscono i social con chi non è entrato. */
+const GATE_PATH = /(^|\/)(login|signin|sign-in|accounts\/login|consent)(\/|$)/i;
+
+/**
+ * Dove porta davvero un link incollato, quando i redirect lo portano altrove:
+ * un link accorciato (`bit.ly`, `vm.tiktok.com`, `pin.it`) e la pagina
+ * completa sono la stessa ricetta, e così la si riconosce in entrambe le
+ * forme. `null` se non c'è stato un redirect che cambi la fonte, o se è finito
+ * su una pagina di accesso, che vale per qualunque ricetta e non per questa.
+ */
+export function resolvedSource(pasted: URL, final: URL): string | null {
+  if (sourceKey(final.href) === sourceKey(pasted.href)) return null;
+  if (/^consent\./i.test(final.hostname) || GATE_PATH.test(final.pathname)) return null;
+  return final.href;
+}

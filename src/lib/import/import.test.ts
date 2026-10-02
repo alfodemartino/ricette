@@ -187,3 +187,23 @@ describe("importRecipe — errori", () => {
     await expect(importRecipe("https://ricette.esempio.it/non-esiste", { fetcher: fakeFetcher({}) })).rejects.toBeInstanceOf(ImportError);
   });
 });
+
+describe("importRecipe — link accorciati", () => {
+  it("tiene il link incollato come fonte e ricorda dove porta", async () => {
+    const short = "https://bit.ly/pasta123";
+    const page = "https://ricette.esempio.it/pasta-e-patate";
+    const fetcher: Fetcher = async () => ({ url: new URL(page), contentType: "text/html", body: fixture("jsonld-semplice.html") });
+
+    const recipe = await importRecipe(short, { fetcher });
+
+    expect(recipe.sourceUrl).toBe(short);
+    expect(recipe.resolvedUrl).toBe(page);
+  });
+
+  it("senza redirect non c'è una seconda fonte", async () => {
+    const url = "https://ricette.esempio.it/pasta-e-patate";
+    const recipe = await importRecipe(url, { fetcher: fakeFetcher({ [url]: "jsonld-semplice.html" }) });
+
+    expect(recipe.resolvedUrl).toBeNull();
+  });
+});

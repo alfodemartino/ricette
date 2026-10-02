@@ -40,7 +40,7 @@ export async function importRecipeAction(_prev: ImportState, formData: FormData)
       complete: isComplete(imported),
       method: imported.method,
       rawText: imported.rawText?.slice(0, 5000) ?? undefined,
-      existing: await findFamilyRecipesFromSource(viewer.familyId, [url, imported.sourceUrl]),
+      existing: await findFamilyRecipesFromSource(viewer.familyId, [url, imported.sourceUrl, imported.resolvedUrl]),
     };
   } catch (error) {
     if (error instanceof ImportError) {

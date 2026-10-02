@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, sourceKey, youtubeVideoId } from "./url";
+import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, resolvedSource, sourceKey, youtubeVideoId } from "./url";
 
 describe("parseImportUrl", () => {
   it("accetta i link normali e aggiunge https se manca", () => {
@@ -101,5 +101,26 @@ describe("sourceKey", () => {
     expect(sourceKey("")).toBeNull();
     expect(sourceKey("non un link")).toBeNull();
     expect(sourceKey("javascript:alert(1)")).toBeNull();
+  });
+});
+
+describe("resolvedSource", () => {
+  const resolved = (pasted: string, final: string) => resolvedSource(new URL(pasted), new URL(final));
+
+  it("tiene la pagina a cui porta un link accorciato", () => {
+    expect(resolved("https://bit.ly/abc123", "https://ricette.esempio.it/tiramisu")).toBe("https://ricette.esempio.it/tiramisu");
+    expect(resolved("https://vm.tiktok.com/ZM123/", "https://www.tiktok.com/@cuoca/video/7012345678")).toBe(
+      "https://www.tiktok.com/@cuoca/video/7012345678",
+    );
+  });
+
+  it("ignora i redirect che non cambiano la fonte", () => {
+    expect(resolved("http://esempio.it/tiramisu", "https://www.esempio.it/tiramisu/")).toBeNull();
+  });
+
+  it("ignora le pagine di accesso e di consenso", () => {
+    expect(resolved("https://instagr.am/p/ABC", "https://www.instagram.com/accounts/login/?next=%2Fp%2FABC")).toBeNull();
+    expect(resolved("https://goo.gl/abc", "https://consent.google.com/ml?continue=x")).toBeNull();
+    expect(resolved("https://fb.me/abc", "https://www.facebook.com/login/")).toBeNull();
   });
 });

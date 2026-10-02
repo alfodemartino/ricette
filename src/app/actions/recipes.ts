@@ -93,7 +93,7 @@ export async function saveRecipeAction(
   if (!recipeId && data.sourceUrl) {
     const confirmed = sourceKey(String(formData.get("confirmDuplicate") ?? "")) === sourceKey(data.sourceUrl);
     if (!confirmed) {
-      const duplicates = await findFamilyRecipesFromSource(viewer.familyId, [data.sourceUrl]);
+      const duplicates = await findFamilyRecipesFromSource(viewer.familyId, [data.sourceUrl, data.resolvedUrl]);
       if (duplicates.length > 0) return { duplicates, duplicateSource: draft.data.sourceUrl };
     }
   }

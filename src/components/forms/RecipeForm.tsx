@@ -632,7 +632,13 @@ export function RecipeForm({
             <Textarea value={fields.notes} onChange={(event) => set("notes", event.target.value)} maxLength={4000} rows={3} />
           </Field>
           <Field label="Link alla fonte" hint="La pagina o il video da cui viene la ricetta.">
-            <Input type="url" value={fields.sourceUrl} onChange={(event) => set("sourceUrl", event.target.value)} placeholder="https://" />
+            <Input
+              type="url"
+              value={fields.sourceUrl}
+              // Dove portava il link di prima non vale per quello nuovo.
+              onChange={(event) => setFields((current) => ({ ...current, sourceUrl: event.target.value, resolvedUrl: "" }))}
+              placeholder="https://"
+            />
           </Field>
         </div>
       </SectionCard>
