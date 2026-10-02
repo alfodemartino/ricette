@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { importRecipeAction, type ImportState } from "@/app/actions/import";
 import { RecipeForm } from "@/components/forms/RecipeForm";
+import { NavLink } from "@/components/NavLink";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Alert, Card, Input } from "@/components/ui";
 import type { ActionState } from "@/lib/action-state";
@@ -52,6 +53,21 @@ export function ImportFlow({
 
       {state.draft && (
         <div className="space-y-4">
+          {state.existing && state.existing.length > 0 && (
+            <Alert tone="warning">
+              {state.existing.length === 1 ? "Nel ricettario c'è già una ricetta da questo link: " : "Nel ricettario ci sono già ricette da questo link: "}
+              {state.existing.map((recipe, index) => (
+                <span key={recipe.id}>
+                  {index > 0 && ", "}
+                  <NavLink href={`/ricette/${recipe.id}`} className="underline">
+                    {recipe.title}
+                  </NavLink>
+                </span>
+              ))}
+              . Se la salvi di nuovo, avrai un doppione.
+            </Alert>
+          )}
+
           <Alert tone={state.complete ? "success" : "info"}>
             {state.complete
               ? `Ricetta trovata. ${METHOD_NOTE[state.method ?? "dati-strutturati"]} Controlla e salva.`

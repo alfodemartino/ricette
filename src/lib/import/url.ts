@@ -135,3 +135,39 @@ export function isVideoHost(url: URL): boolean {
   const host = url.hostname.toLowerCase();
   return VIDEO_HOSTS.some((video) => host === video || host.endsWith(`.${video}`));
 }
+
+// ---------------------------------------------------------------------------
+// Stessa fonte
+// ---------------------------------------------------------------------------
+
+/** Parametri che dicono da dove si è arrivati, non quale pagina si apre. */
+const TRACKING_PARAMS = /^(utm_.*|fbclid|gclid|dclid|msclkid|igsh|igshid|mc_cid|mc_eid|_ga|si|ref|ref_src|feature)$/i;
+
+/**
+ * Una chiave che vale uguale per due link alla stessa ricetta: senza
+ * protocollo, `www.`, barra finale, ancora e parametri di tracciamento, e per
+ * YouTube solo l'identificativo del video, da qualunque forma di link. Serve
+ * ad avvisare quando si importa di nuovo una ricetta che c'è già. `null` se il
+ * testo non è un link.
+ */
+export function sourceKey(raw: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+  const videoId = youtubeVideoId(url);
+  if (videoId) return `youtube:${videoId}`;
+
+  const host = url.hostname.toLowerCase().replace(/^(www\.|m\.)/, "");
+  const path = url.pathname.replace(/\/+$/, "");
+  const params = [...url.searchParams]
+    .filter(([name]) => !TRACKING_PARAMS.test(name))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => `${name}=${value}`)
+    .join("&");
+  return `${host}${path}${params ? `?${params}` : ""}`;
+}

@@ -174,9 +174,10 @@ export function Checkbox({
   );
 }
 
-export function Alert({ tone, children }: { tone: "error" | "success" | "info"; children: ReactNode }) {
+export function Alert({ tone, children }: { tone: "error" | "warning" | "success" | "info"; children: ReactNode }) {
   const tones = {
     error: "bg-negative/10 text-negative",
+    warning: "bg-warning/10 text-warning",
     success: "bg-positive/10 text-positive",
     info: "bg-fill text-label-secondary",
   } as const;

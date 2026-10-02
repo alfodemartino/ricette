@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { sourceKey } from "@/lib/import/url";
 import type { RecipeData } from "@/lib/recipe-draft";
 import { tagKey } from "@/lib/tags";
 
@@ -41,6 +42,25 @@ export async function getFamilyRecipe(id: string, familyId: string) {
       updatedBy: { select: { name: true } },
     },
   });
+}
+
+/**
+ * Le ricette della famiglia che vengono da uno dei link dati, confrontati con
+ * `sourceKey`: la stessa pagina con o senza `www.`, parametri di
+ * tracciamento o un'altra forma del link YouTube. Le ricette con una fonte
+ * sono al più qualche centinaio, e il confronto si fa qui invece che in SQL.
+ */
+export async function findFamilyRecipesFromSource(familyId: string, urls: string[]) {
+  const keys = new Set(urls.map(sourceKey).filter((key): key is string => key !== null));
+  if (keys.size === 0) return [];
+  const withSource = await prisma.recipe.findMany({
+    where: { familyId, sourceUrl: { not: null } },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, title: true, sourceUrl: true },
+  });
+  return withSource
+    .filter((recipe) => keys.has(sourceKey(recipe.sourceUrl ?? "") ?? ""))
+    .map(({ id, title }) => ({ id, title }));
 }
 
 export async function listFamilyTags(familyId: string) {

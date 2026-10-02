@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, youtubeVideoId } from "./url";
+import { ImportError, isPrivateAddress, isVideoHost, parseImportUrl, sourceKey, youtubeVideoId } from "./url";
 
 describe("parseImportUrl", () => {
   it("accetta i link normali e aggiunge https se manca", () => {
@@ -73,5 +73,33 @@ describe("piattaforme", () => {
     expect(isVideoHost(new URL("https://www.instagram.com/reel/abc/"))).toBe(true);
     expect(isVideoHost(new URL("https://vm.tiktok.com/abc"))).toBe(true);
     expect(isVideoHost(new URL("https://www.giallozafferano.it/ricetta"))).toBe(false);
+  });
+});
+
+describe("sourceKey", () => {
+  it.each([
+    ["https://www.esempio.it/ricette/tiramisu/", "http://esempio.it/ricette/tiramisu"],
+    ["https://esempio.it/tiramisu?utm_source=whatsapp&fbclid=abc#commenti", "https://esempio.it/tiramisu"],
+    ["https://m.esempio.it/tiramisu", "https://esempio.it/tiramisu"],
+    ["https://esempio.it/ricetta?id=4&lang=it", "https://esempio.it/ricetta?lang=it&id=4"],
+    ["https://youtu.be/dQw4w9WgXcQ?si=abc", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10"],
+    ["https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://m.youtube.com/watch?v=dQw4w9WgXcQ"],
+    ["https://www.instagram.com/reel/ABC123/?igsh=xyz", "https://instagram.com/reel/ABC123"],
+  ])("«%s» e «%s» sono la stessa fonte", (a, b) => {
+    expect(sourceKey(a)).toBe(sourceKey(b));
+  });
+
+  it.each([
+    ["https://esempio.it/tiramisu", "https://esempio.it/panna-cotta"],
+    ["https://esempio.it/ricetta?id=4", "https://esempio.it/ricetta?id=5"],
+    ["https://esempio.it/tiramisu", "https://altro-sito.it/tiramisu"],
+  ])("«%s» e «%s» sono fonti diverse", (a, b) => {
+    expect(sourceKey(a)).not.toBe(sourceKey(b));
+  });
+
+  it("non dà una chiave a ciò che non è un link http", () => {
+    expect(sourceKey("")).toBeNull();
+    expect(sourceKey("non un link")).toBeNull();
+    expect(sourceKey("javascript:alert(1)")).toBeNull();
   });
 });

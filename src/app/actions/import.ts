@@ -5,6 +5,7 @@ import { isComplete } from "@/lib/import/types";
 import { ImportError } from "@/lib/import/url";
 import { logEvent } from "@/lib/log";
 import { draftFromImport, type RecipeDraft } from "@/lib/recipe-draft";
+import { findFamilyRecipesFromSource } from "@/lib/recipes";
 import { familyViewerOrNull } from "@/lib/session";
 
 export type ImportState = {
@@ -16,11 +17,15 @@ export type ImportState = {
   method?: "dati-strutturati" | "testo" | "anteprima";
   /** Il testo da cui partire a mano quando l'import è parziale. */
   rawText?: string;
+  /** Le ricette della famiglia che vengono già da questo link. */
+  existing?: { id: string; title: string }[];
 };
 
 /**
  * Prepara la bozza di una ricetta a partire da un link. Non salva niente: la
- * bozza torna al browser, che la mostra nel form da controllare.
+ * bozza torna al browser, che la mostra nel form da controllare. Se la
+ * famiglia ha già una ricetta da quel link lo dice, ma non impedisce di
+ * salvarne un'altra: può essere una variante voluta.
  */
 export async function importRecipeAction(_prev: ImportState, formData: FormData): Promise<ImportState> {
   const viewer = await familyViewerOrNull();
@@ -35,6 +40,7 @@ export async function importRecipeAction(_prev: ImportState, formData: FormData)
       complete: isComplete(imported),
       method: imported.method,
       rawText: imported.rawText?.slice(0, 5000) ?? undefined,
+      existing: await findFamilyRecipesFromSource(viewer.familyId, [url, imported.sourceUrl]),
     };
   } catch (error) {
     if (error instanceof ImportError) {
