@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { ImportError } from "@/lib/import/url";
+import { ImportError, sourceKey } from "@/lib/import/url";
 import { logEvent } from "@/lib/log";
 import { deleteImage, MAX_UPLOAD_BYTES, PhotoError, storeImage, storeImageFromUrl } from "@/lib/photos";
 import { DraftError, draftToData } from "@/lib/recipe-draft";
-import { saveRecipe } from "@/lib/recipes";
+import { findFamilyRecipesFromSource, saveRecipe } from "@/lib/recipes";
 import { clientIp } from "@/lib/request-ip";
 import { familyViewerOrNull } from "@/lib/session";
 import { siteName } from "@/lib/site";
@@ -55,11 +55,18 @@ async function photoFromForm(
   return undefined;
 }
 
+export type SaveRecipeState = ActionState & {
+  /** Le ricette della famiglia con la stessa fonte: il form chiede conferma. */
+  duplicates?: { id: string; title: string }[];
+  /** Il link, così come scritto nel form, a cui si riferisce l'avviso. */
+  duplicateSource?: string;
+};
+
 export async function saveRecipeAction(
   recipeId: string | null,
-  _prev: ActionState,
+  _prev: SaveRecipeState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<SaveRecipeState> {
   const viewer = await familyViewerOrNull();
   if (!viewer) return NO_FAMILY;
 
@@ -78,6 +85,17 @@ export async function saveRecipeAction(
   } catch (error) {
     if (error instanceof DraftError) return { error: error.message };
     throw error;
+  }
+
+  // Una ricetta nuova con la fonte di una che c'è già si salva solo dopo una
+  // conferma, legata al link: se nel frattempo il link cambia, si richiede. Il
+  // controllo viene prima della foto, per non scaricarla a vuoto.
+  if (!recipeId && data.sourceUrl) {
+    const confirmed = sourceKey(String(formData.get("confirmDuplicate") ?? "")) === sourceKey(data.sourceUrl);
+    if (!confirmed) {
+      const duplicates = await findFamilyRecipesFromSource(viewer.familyId, [data.sourceUrl]);
+      if (duplicates.length > 0) return { duplicates, duplicateSource: draft.data.sourceUrl };
+    }
   }
 
   let photo: PhotoChange | undefined;

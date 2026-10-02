@@ -3,10 +3,10 @@
 import { useActionState } from "react";
 import { importRecipeAction, type ImportState } from "@/app/actions/import";
 import { RecipeForm } from "@/components/forms/RecipeForm";
-import { NavLink } from "@/components/NavLink";
+import { RecipeLinks } from "@/components/RecipeLinks";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Alert, Card, Input } from "@/components/ui";
-import type { ActionState } from "@/lib/action-state";
+import type { SaveRecipeState } from "@/app/actions/recipes";
 
 const METHOD_NOTE = {
   "dati-strutturati": "La pagina descrive la ricetta in modo strutturato: dovrebbe essere tutto al suo posto.",
@@ -23,7 +23,7 @@ export function ImportFlow({
   saveAction,
   tagSuggestions,
 }: {
-  saveAction: (state: ActionState, formData: FormData) => Promise<ActionState>;
+  saveAction: (state: SaveRecipeState, formData: FormData) => Promise<SaveRecipeState>;
   tagSuggestions: string[];
 }) {
   const [state, formAction] = useActionState<ImportState, FormData>(importRecipeAction, {});
@@ -56,15 +56,7 @@ export function ImportFlow({
           {state.existing && state.existing.length > 0 && (
             <Alert tone="warning">
               {state.existing.length === 1 ? "Nel ricettario c'è già una ricetta da questo link: " : "Nel ricettario ci sono già ricette da questo link: "}
-              {state.existing.map((recipe, index) => (
-                <span key={recipe.id}>
-                  {index > 0 && ", "}
-                  <NavLink href={`/ricette/${recipe.id}`} className="underline">
-                    {recipe.title}
-                  </NavLink>
-                </span>
-              ))}
-              . Se la salvi di nuovo, avrai un doppione.
+              <RecipeLinks recipes={state.existing} />. Prima di salvarne un&apos;altra ti verrà chiesta conferma.
             </Alert>
           )}
 
