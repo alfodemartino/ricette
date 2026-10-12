@@ -20,11 +20,22 @@ export function isFacebookHost(url: URL): boolean {
 /** «Visualizzazioni: 180.473 · Reazioni: 22.635 | », o lo stesso in inglese. */
 const STATS_PREFIX = /^[^|\n]*\d[^|\n]*·[^|\n]*\|\s*/;
 
+/** « | Nome della pagina» in fondo, dopo la didascalia. */
+const AUTHOR_SUFFIX = /\s+\|\s+[^|\n]+$/;
+
 /**
- * Il titolo di un post: nell'anteprima c'è tutta la didascalia, preceduta dai
- * contatori. Si tolgono i contatori e si tiene la prima riga.
+ * La didascalia di un post. Nell'anteprima `og:description` è tagliata dopo
+ * poche righe, mentre `og:title` la contiene intera, tra i contatori e il
+ * nome della pagina: «Visualizzazioni: … · Reazioni: … | <didascalia> | <pagina>».
+ * Se il titolo non ha questa forma non si tocca niente e si torna `null`.
  */
-export function facebookTitle(ogTitle: string): string {
-  const text = cleanText(ogTitle).replace(STATS_PREFIX, "");
-  return text.split("\n").find((line) => line.trim())?.trim() ?? "";
+export function facebookCaption(ogTitle: string): string | null {
+  const text = cleanText(ogTitle);
+  if (!STATS_PREFIX.test(text)) return null;
+  return text.replace(STATS_PREFIX, "").replace(AUTHOR_SUFFIX, "").trim() || null;
+}
+
+/** Il titolo della ricetta: la prima riga della didascalia. */
+export function facebookTitle(caption: string): string {
+  return caption.split("\n").find((line) => line.trim())?.trim() ?? "";
 }

@@ -145,8 +145,16 @@ describe("importRecipe — video e social", () => {
       resolvedUrl: reel.href,
       method: "testo",
     });
-    expect(recipe.ingredients.map((item) => item.text)).toEqual(["1 rotolo di pasta sfoglia", "200 g di salsiccia"]);
+    // La didascalia si prende intera dal titolo: la descrizione è tagliata.
+    expect(recipe.ingredients.map((item) => item.text)).toEqual([
+      "200gr farina 00",
+      "110gr vino bianco secco",
+      "200gr di salsiccia",
+      "Olio extra vergine d’oliva della migliore qualità qb.",
+      "1 mozzarella da 250gr",
+    ]);
     expect(recipe.steps).toHaveLength(2);
+    expect(recipe.rawText).not.toContain("Pagina di prova");
   });
 });
 

@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { FACEBOOK_HEADERS, facebookTitle, isFacebookHost } from "@/lib/import/facebook";
+import { FACEBOOK_HEADERS, facebookCaption, facebookTitle, isFacebookHost } from "@/lib/import/facebook";
 import { decodeBody, safeFetch, type Fetcher } from "@/lib/import/fetch-page";
 import { linksInText, pageText } from "@/lib/import/html";
 import { extractJsonLdRecipe } from "@/lib/import/jsonld";
@@ -53,8 +53,10 @@ async function fetchHtml(url: URL, fetcher: Fetcher, headers?: Record<string, st
 export function recipeFromHtml(html: string, pageUrl: URL, sourceUrl: URL): ImportedRecipe {
   const $ = cheerio.load(html);
   const preview = extractPreview($, pageUrl);
-  if (isFacebookHost(pageUrl)) {
-    preview.title = facebookTitle($('meta[property="og:title"]').attr("content") ?? "") || preview.title;
+  const caption = isFacebookHost(pageUrl) ? facebookCaption($('meta[property="og:title"]').attr("content") ?? "") : null;
+  if (caption) {
+    preview.title = facebookTitle(caption);
+    preview.description = caption;
   }
   const sourceKind = isVideoHost(sourceUrl) ? "VIDEO" : "SITO";
 
