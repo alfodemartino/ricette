@@ -85,6 +85,8 @@ describe("sourceKey", () => {
     ["https://youtu.be/dQw4w9WgXcQ?si=abc", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10"],
     ["https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://m.youtube.com/watch?v=dQw4w9WgXcQ"],
     ["https://www.instagram.com/reel/ABC123/?igsh=xyz", "https://instagram.com/reel/ABC123"],
+    ["https://www.facebook.com/reel/123/?fs=e&rdid=abc&share_url=x", "https://m.facebook.com/reel/123/?rdid=def"],
+    ["https://www.facebook.com/share/v/AbC123/?mibextid=xyz", "https://www.facebook.com/share/v/AbC123/"],
   ])("«%s» e «%s» sono la stessa fonte", (a, b) => {
     expect(sourceKey(a)).toBe(sourceKey(b));
   });
@@ -93,6 +95,7 @@ describe("sourceKey", () => {
     ["https://esempio.it/tiramisu", "https://esempio.it/panna-cotta"],
     ["https://esempio.it/ricetta?id=4", "https://esempio.it/ricetta?id=5"],
     ["https://esempio.it/tiramisu", "https://altro-sito.it/tiramisu"],
+    ["https://esempio.it/ricetta?fs=1", "https://esempio.it/ricetta?fs=2"],
   ])("«%s» e «%s» sono fonti diverse", (a, b) => {
     expect(sourceKey(a)).not.toBe(sourceKey(b));
   });

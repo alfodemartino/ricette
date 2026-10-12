@@ -124,6 +124,30 @@ describe("importRecipe — video e social", () => {
     expect(recipe.ingredients.map((item) => item.text)).toEqual(["300 g di macinato", "1 uovo", "50 g di pangrattato"]);
     expect(recipe.steps).toHaveLength(2);
   });
+
+  it("da Facebook si presenta come il lettore delle anteprime e segue il link condiviso", async () => {
+    const shared = "https://www.facebook.com/share/v/AbC123/?mibextid=xyz";
+    const reel = new URL("https://www.facebook.com/reel/1234567890/?fs=e&rdid=qwerty&share_url=x");
+    const agents: (string | undefined)[] = [];
+    const fetcher: Fetcher = async (url, options) => {
+      agents.push(options.headers?.["User-Agent"]);
+      if (url.href !== shared) throw new ImportError("Non trovata", "http_404");
+      return { url: reel, contentType: "text/html; charset=utf-8", body: fixture("facebook.html") };
+    };
+    const recipe = await importRecipe(shared, { fetcher });
+
+    expect(agents).toEqual([expect.stringMatching(/^facebookexternalhit\//)]);
+    expect(recipe).toMatchObject({
+      title: "TORTA RUSTICA DI PROVA 🥦",
+      imageUrl: "https://scontent.esempio.net/reel.jpg",
+      sourceKind: "VIDEO",
+      sourceUrl: shared,
+      resolvedUrl: reel.href,
+      method: "testo",
+    });
+    expect(recipe.ingredients.map((item) => item.text)).toEqual(["1 rotolo di pasta sfoglia", "200 g di salsiccia"]);
+    expect(recipe.steps).toHaveLength(2);
+  });
 });
 
 describe("importRecipe — pagine senza dati strutturati", () => {
