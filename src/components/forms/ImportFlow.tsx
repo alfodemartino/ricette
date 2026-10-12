@@ -30,7 +30,7 @@ export function ImportFlow({
 
   return (
     <div className="space-y-6">
-      <Card title="Link della ricetta" description="Una pagina di ricette, un video YouTube, un post di Instagram o TikTok.">
+      <Card title="Link della ricetta" description="Una pagina di ricette, un video YouTube, un post di Instagram, TikTok o Facebook.">
         <form action={formAction} className="space-y-3">
           {state.error && <Alert tone="error">{state.error}</Alert>}
           <div className="flex flex-col gap-2 sm:flex-row">

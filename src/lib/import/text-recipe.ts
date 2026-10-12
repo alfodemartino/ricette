@@ -58,8 +58,12 @@ function looksLikeIngredient(line: string): boolean {
   return parsed.quantity !== null || parsed.note === "q.b.";
 }
 
+/** «Olio extra vergine d'oliva qb.»: il punto è quello di «q.b.», non di una frase. */
+const ENDS_WITH_QB = /\bq\.?\s*b\.?$/i;
+
 /** Una frase di procedimento: lunga, e che finisce come finisce una frase. */
 function looksLikeProse(line: string): boolean {
+  if (ENDS_WITH_QB.test(line) && line.length <= 90) return false;
   return line.length > 80 || (line.length > 40 && /[.!]$/.test(line));
 }
 

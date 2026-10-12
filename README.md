@@ -110,7 +110,7 @@ Cosa si ottiene dipende dalla fonte:
 | Siti di ricette | I dati strutturati `schema.org/Recipe` che i siti pubblicano per Google | Completo: titolo, foto, porzioni, tempi, ingredienti, passi, spesso la categoria |
 | Video YouTube | Titolo e descrizione del video; nella descrizione si cercano i blocchi «Ingredienti» e «Procedimento» | Completo se l'autore scrive la ricetta nella descrizione, altrimenti titolo e miniatura |
 | Descrizione con un link | Se manca qualcosa e la descrizione rimanda a una pagina («ricetta completa sul sito»), si prova a leggere quella | Completo, con il video come fonte |
-| Instagram, TikTok, Facebook | La didascalia, quando la piattaforma la mostra senza login | Spesso parziale: titolo e immagine |
+| Instagram, TikTok, Facebook | La didascalia, quando la piattaforma la mostra senza login. Facebook la mostra solo al suo lettore delle anteprime, e l'app si presenta così | Spesso parziale: titolo e immagine |
 | Altre pagine | Titolo e immagine dell'anteprima, più la ricerca di ingredienti e passi nel testo | Variabile |
 
 Quando l'import è parziale il form lo dice, e mostra il testo trovato alla

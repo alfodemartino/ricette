@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { FACEBOOK_HEADERS, facebookCaption, facebookTitle, isFacebookHost } from "@/lib/import/facebook";
 import { decodeBody, safeFetch, type Fetcher } from "@/lib/import/fetch-page";
 import { linksInText, pageText } from "@/lib/import/html";
 import { extractJsonLdRecipe } from "@/lib/import/jsonld";
@@ -14,7 +15,8 @@ import { extractYouTubeDetails, YOUTUBE_CONSENT_COOKIE, youtubeThumbnail } from 
  *  1. YouTube: titolo e descrizione del video, e nella descrizione la ricetta
  *     scritta a testo (`parseRecipeText`).
  *  2. Ogni altra pagina: i dati strutturati schema.org (`jsonld.ts`), che
- *     quasi tutti i siti di ricette pubblicano.
+ *     quasi tutti i siti di ricette pubblicano. Facebook si scarica come lo
+ *     scarica il suo lettore delle anteprime (`facebook.ts`).
  *  3. Senza dati strutturati: anteprima Open Graph più l'euristica sul testo.
  *  4. Se dopo questi passi mancano ingredienti o procedimento e il testo
  *     contiene link ad altre pagine (il classico «ricetta completa sul
@@ -51,6 +53,11 @@ async function fetchHtml(url: URL, fetcher: Fetcher, headers?: Record<string, st
 export function recipeFromHtml(html: string, pageUrl: URL, sourceUrl: URL): ImportedRecipe {
   const $ = cheerio.load(html);
   const preview = extractPreview($, pageUrl);
+  const caption = isFacebookHost(pageUrl) ? facebookCaption($('meta[property="og:title"]').attr("content") ?? "") : null;
+  if (caption) {
+    preview.title = facebookTitle(caption);
+    preview.description = caption;
+  }
   const sourceKind = isVideoHost(sourceUrl) ? "VIDEO" : "SITO";
 
   const structured = extractJsonLdRecipe($, pageUrl, sourceUrl.href);
@@ -169,7 +176,7 @@ export async function importRecipe(rawUrl: string, options: ImportOptions = {}):
     const page = await fetchHtml(watchUrl, fetcher, { Cookie: YOUTUBE_CONSENT_COOKIE });
     recipe = recipeFromYouTube(page.html, url, videoId);
   } else {
-    const page = await fetchHtml(url, fetcher);
+    const page = await fetchHtml(url, fetcher, isFacebookHost(url) ? FACEBOOK_HEADERS : undefined);
     recipe = recipeFromHtml(page.html, page.url, url);
   }
 

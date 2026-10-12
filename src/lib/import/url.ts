@@ -144,6 +144,13 @@ export function isVideoHost(url: URL): boolean {
 const TRACKING_PARAMS = /^(utm_.*|fbclid|gclid|dclid|msclkid|igsh|igshid|mc_cid|mc_eid|_ga|si|ref|ref_src|feature)$/i;
 
 /**
+ * Quelli che Facebook aggiunge ai link condivisi e ai redirect da `share/…`:
+ * `rdid` cambia a ogni visita, quindi senza toglierli lo stesso reel non
+ * avrebbe mai la stessa chiave. `fs` è troppo generico per gli altri siti.
+ */
+const FACEBOOK_TRACKING_PARAMS = /^(mibextid|rdid|share_url|fs)$/i;
+
+/**
  * Una chiave che vale uguale per due link alla stessa ricetta: senza
  * protocollo, `www.`, barra finale, ancora e parametri di tracciamento, e per
  * YouTube solo l'identificativo del video, da qualunque forma di link. Serve
@@ -164,8 +171,9 @@ export function sourceKey(raw: string): string | null {
 
   const host = url.hostname.toLowerCase().replace(/^(www\.|m\.)/, "");
   const path = url.pathname.replace(/\/+$/, "");
+  const facebook = host === "facebook.com" || host.endsWith(".facebook.com");
   const params = [...url.searchParams]
-    .filter(([name]) => !TRACKING_PARAMS.test(name))
+    .filter(([name]) => !TRACKING_PARAMS.test(name) && !(facebook && FACEBOOK_TRACKING_PARAMS.test(name)))
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, value]) => `${name}=${value}`)
     .join("&");

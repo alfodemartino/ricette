@@ -62,6 +62,25 @@ describe("parseRecipeText", () => {
     expect(recipe.steps).toHaveLength(2);
   });
 
+  it("non scambia per una frase un ingrediente lungo che finisce con «qb.»", () => {
+    const text = [
+      "Ingredienti:",
+      "1 kg di friarielli",
+      "Olio extra vergine d'oliva della migliore qualità qb.",
+      "1 mozzarella da 250 g",
+      "Aggiungete il sale q.b. e mescolate bene fino a quando è tutto amalgamato.",
+    ].join("\n");
+
+    const recipe = parseRecipeText(text);
+
+    expect(recipe.ingredients.map((item) => item.text)).toEqual([
+      "1 kg di friarielli",
+      "Olio extra vergine d'oliva della migliore qualità qb.",
+      "1 mozzarella da 250 g",
+    ]);
+    expect(recipe.steps).toHaveLength(1);
+  });
+
   it("senza intestazioni trova l'elenco più lungo di ingredienti", () => {
     const text = ["Ecco la mia torta preferita", "", "• 250 g di farina", "• 3 uova", "• 150 g di zucchero", "• 1 bustina di lievito", "", "Buon appetito!"].join("\n");
 
