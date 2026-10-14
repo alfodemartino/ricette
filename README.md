@@ -33,11 +33,14 @@ copie notturne.
 - **Porzioni ricalcolabili** — nella ricetta si cambia il numero di persone e
   le quantità si ricalcolano come le scriverebbe una persona: grammi
   arrotondati come su una bilancia, uova e cucchiai in frazioni di casa (½, ⅓,
-  ¾). «q.b.» resta «q.b.». Quando le persone sono diverse da quelle della
-  ricetta, una freccia accanto a «Persone» riporta le quantità originali.
+  ¾). «q.b.» resta «q.b.». Si può partire anche da un ingrediente: toccandone
+  la quantità se ne scrive un'altra («ho solo 300 g di farina») e tutte le
+  altre si adeguano, persone comprese, anche nelle ricette che non dicono per
+  quante persone sono. Quando le quantità non sono quelle della ricetta, una
+  freccia accanto a «Persone» le riporta alle originali.
 - **In cucina** — toccando un passo del procedimento lo si segna come fatto.
 - **Condivisione** — una ricetta parte come messaggio di testo: titolo,
-  ingredienti con le quantità per le persone scelte, procedimento, note e
+  ingredienti con le quantità scelte nella pagina, procedimento, note e
   fonte, con un'emoji davanti a ogni sezione. Non un link, perché fuori dalla
   famiglia la ricetta non si apre. Si condivide dalla ricetta, oppure
   dall'elenco: l'icona su una scheda manda quella ricetta, il tasto in

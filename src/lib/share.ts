@@ -1,6 +1,6 @@
 import { categoryLabel, type RecipeCategory } from "@/lib/categories";
 import { formatMinutes, totalMinutes } from "@/lib/duration";
-import { formatQuantity, scaleQuantity, unitLabel } from "@/lib/ingredients";
+import { formatQuantity, peopleFor, scaleQuantity, unitLabel } from "@/lib/ingredients";
 
 /**
  * La ricetta come messaggio: il testo che «Condividi» manda su WhatsApp, nei
@@ -58,10 +58,16 @@ function oneLine(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-/** Per quante persone sono le quantità: quelle scelte, se la ricetta dice per quante è. */
-function peopleFor(recipe: ShareableRecipe, people: number | null | undefined): number | null {
-  if (!recipe.servings || recipe.servings <= 0) return null;
-  return people && people > 0 ? people : recipe.servings;
+/**
+ * «4 persone», oppure «circa 2 persone» quando le quantità vengono da un
+ * ingrediente e le persone non sono un numero intero: in chat «2,4 persone»
+ * non vuol dire niente, e rileggendo il messaggio l'import prenderebbe il 4.
+ */
+function peopleText(people: number | null): string {
+  if (people === null) return "";
+  const rounded = Math.max(1, Math.round(people));
+  const label = `${rounded} ${rounded === 1 ? "persona" : "persone"}`;
+  return rounded === people ? label : `circa ${label}`;
 }
 
 /** «Primo · 4 persone · ⏱️ 40 min», con quello che la ricetta indica. */
@@ -69,7 +75,7 @@ function summary(recipe: ShareableRecipe, people: number | null): string {
   const total = formatMinutes(totalMinutes(recipe.prepMinutes, recipe.cookMinutes));
   return [
     recipe.category ? categoryLabel(recipe.category) : "",
-    people ? `${people} ${people === 1 ? "persona" : "persone"}` : "",
+    peopleText(people),
     total ? `⏱️ ${total}` : "",
   ]
     .filter(Boolean)
@@ -109,16 +115,19 @@ function sectionedLines<T extends { section: string | null }>(items: T[], line: 
   return lines;
 }
 
-/** Il messaggio per una ricetta, con le quantità per `people` persone. */
-export function recipeShareText(recipe: ShareableRecipe, people?: number | null): string {
-  const forPeople = peopleFor(recipe, people);
-  const blocks: string[][] = [[`🍽️ ${oneLine(recipe.title)}`, summary(recipe, forPeople)].filter(Boolean)];
+/**
+ * Il messaggio per una ricetta, con le quantità moltiplicate per `factor`:
+ * quello scelto nella pagina, con le persone o con un ingrediente.
+ */
+export function recipeShareText(recipe: ShareableRecipe, factor = 1): string {
+  const people = peopleFor(recipe.servings, factor);
+  const blocks: string[][] = [[`🍽️ ${oneLine(recipe.title)}`, summary(recipe, people)].filter(Boolean)];
 
   if (recipe.ingredients.length > 0) {
     blocks.push([
       "🛒 Ingredienti",
       ...sectionedLines(recipe.ingredients, (item) =>
-        ingredientLine(item, scaleQuantity(item.quantity, recipe.servings, forPeople)),
+        ingredientLine(item, scaleQuantity(item.quantity, factor)),
       ),
     ]);
   }

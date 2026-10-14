@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Menu } from "@/components/Menu";
 import { NavLink } from "@/components/NavLink";
 import { RecipePhoto } from "@/components/RecipeCard";
-import { IngredientsSection, RecipePeople, StepsSection } from "@/components/RecipeView";
+import { IngredientsSection, RecipeScale, StepsSection } from "@/components/RecipeView";
 import { ShareRecipeButton } from "@/components/ShareRecipes";
 import { DeleteRecipeButton } from "@/components/forms/DeleteRecipeButton";
 import { Badge, Card, MoreIcon, menuItemClass } from "@/components/ui";
@@ -31,7 +31,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   ].filter((fact): fact is string[] => fact !== null);
 
   return (
-    <RecipePeople servings={recipe.servings}>
+    <RecipeScale>
       <article className="space-y-6">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -129,6 +129,6 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
             ` · modificata ${recipe.updatedBy?.name ? `da ${recipe.updatedBy.name} ` : ""}il ${dateFormat.format(recipe.updatedAt)}`}
         </footer>
       </article>
-    </RecipePeople>
+    </RecipeScale>
   );
 }

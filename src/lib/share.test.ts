@@ -105,7 +105,7 @@ describe("recipeShareText", () => {
   });
 
   it("ricalcola le quantità per le persone scelte, come la pagina", () => {
-    const text = recipeShareText(risotto, 6);
+    const text = recipeShareText(risotto, 6 / 4);
     expect(text).toContain("Primo · 6 persone · ⏱️ 40 min");
     expect(text).toContain("• Riso Carnaroli 480 g");
     expect(text).toContain("• Zucchine 4½");
@@ -113,15 +113,24 @@ describe("recipeShareText", () => {
     expect(text).toContain("• Brodo vegetale 1,5 l");
     expect(text).toContain("• Sale q.b.");
 
-    const forOne = recipeShareText(risotto, 1);
+    const forOne = recipeShareText(risotto, 1 / 4);
     expect(forOne).toContain("Primo · 1 persona ·");
     expect(forOne).toContain("• Riso Carnaroli 80 g");
   });
 
-  it("lascia le quantità come sono se la ricetta non dice per quante persone è", () => {
-    const text = recipeShareText({ ...risotto, servings: null }, 6);
+  it("dalla quantità di un ingrediente dice le persone arrotondate", () => {
+    // 200 g di riso invece di 320: ×0,625, cioè 2,5 persone.
+    const text = recipeShareText(risotto, 200 / 320);
+    expect(text).toContain("Primo · circa 3 persone · ⏱️ 40 min");
+    expect(text).toContain("• Riso Carnaroli 200 g");
+    expect(text).toContain("• Brodo vegetale 0,63 l");
+  });
+
+  it("ricalcola anche se la ricetta non dice per quante persone è, senza nominarle", () => {
+    const text = recipeShareText({ ...risotto, servings: null }, 1.5);
     expect(text).toContain("Primo · ⏱️ 40 min");
-    expect(text).toContain("• Riso Carnaroli 320 g");
+    expect(text).toContain("• Riso Carnaroli 480 g");
+    expect(recipeShareText({ ...risotto, servings: null })).toContain("• Riso Carnaroli 320 g");
   });
 
   it("separa le sottosezioni e numera i passi di seguito, con le note così come sono", () => {
@@ -174,7 +183,7 @@ describe("recipeShareText", () => {
   });
 
   it("si rilegge anche con le quantità ricalcolate", () => {
-    const parsed = parseRecipeText(recipeShareText(risotto, 6));
+    const parsed = parseRecipeText(recipeShareText(risotto, 6 / 4));
     expect(parsed.servings).toBe(6);
     expect(parsed.ingredients.map(({ text }) => parseIngredientLine(text).quantity)).toEqual([480, 4.5, 0.75, 0.75, 1.5, null, null]);
   });

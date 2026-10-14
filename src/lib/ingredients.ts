@@ -305,11 +305,58 @@ export function parseIngredientList(text: string): ParsedIngredientList {
 // Porzioni e formattazione
 // ---------------------------------------------------------------------------
 
-/** La quantità per un numero diverso di porzioni. */
-export function scaleQuantity(quantity: number | null, from: number | null, to: number | null): number | null {
+/*
+ * Il ricalcolo passa da un fattore solo, che moltiplica tutte le quantità:
+ * vale 1 per la ricetta com'è scritta. Lo si sceglie in due modi, con le
+ * persone («per 6 invece che per 4», ×1,5) oppure con la quantità di un
+ * ingrediente («ho 300 g di farina invece di 500», ×0,6). Il secondo modo
+ * funziona anche nelle ricette che non dicono per quante persone sono.
+ */
+
+/** Il fattore per passare da `from` a `to` persone; 1 se uno dei due manca. */
+export function factorForPeople(from: number | null, to: number | null): number {
+  if (!from || !to || from <= 0 || to <= 0) return 1;
+  return to / from;
+}
+
+/** Il fattore che porta un ingrediente da `original` a `wanted`; `null` se non si può. */
+export function factorForQuantity(original: number | null, wanted: number | null): number | null {
+  if (original === null || wanted === null || !(original > 0) || !(wanted > 0)) return null;
+  if (!Number.isFinite(wanted / original)) return null;
+  return wanted / original;
+}
+
+/** Una quantità moltiplicata per il fattore. */
+export function scaleQuantity(quantity: number | null, factor: number): number | null {
   if (quantity === null) return null;
-  if (!from || !to || from <= 0 || to <= 0) return quantity;
-  return (quantity * to) / from;
+  return factor > 0 && Number.isFinite(factor) ? quantity * factor : quantity;
+}
+
+/** Se il fattore lascia la ricetta com'è, a meno degli errori di calcolo. */
+export function isOriginalScale(factor: number): boolean {
+  return Math.abs(factor - 1) < 1e-9;
+}
+
+/** Le persone che un fattore corrisponde a sfamare; `null` se la ricetta non lo dice. */
+export function peopleFor(servings: number | null, factor: number): number | null {
+  if (!servings || servings <= 0) return null;
+  const people = servings * factor;
+  // 4 × 0,6 fa 2,4000000000000004: le persone si leggono al decimo.
+  return Math.round(people * 10) / 10;
+}
+
+/** Le persone come si mostrano: «3», «2,4». */
+export function formatPeople(people: number): string {
+  return decimalComma(people, 1);
+}
+
+/**
+ * Le persone dopo un tocco su meno o più. Da un numero con la virgola si va
+ * all'intero vicino in quella direzione: da 2,4 a 2 o a 3.
+ */
+export function stepPeople(people: number, direction: 1 | -1): number {
+  const next = direction > 0 ? Math.floor(people) + 1 : Math.ceil(people) - 1;
+  return Math.min(99, Math.max(1, next));
 }
 
 const NICE_FRACTIONS: [number, string][] = [
