@@ -1,7 +1,19 @@
 "use client";
 
-import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { formatQuantity, scaleQuantity, unitLabel } from "@/lib/ingredients";
+import { createContext, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import {
+  factorForPeople,
+  factorForQuantity,
+  formatPeople,
+  formatQuantity,
+  isOriginalScale,
+  parseQuantity,
+  peopleFor,
+  quantityInput,
+  scaleQuantity,
+  stepPeople,
+  unitLabel,
+} from "@/lib/ingredients";
 
 type Ingredient = {
   id: string;
@@ -36,24 +48,35 @@ function ResetIcon({ className = "" }: { className?: string }) {
 }
 
 /**
- * Le persone scelte nella pagina della ricetta. Stanno sopra la sezione degli
- * ingredienti perché servono anche a «Condividi», in testata: il messaggio
+ * Di quanto sono ricalcolate le quantità nella pagina. Il fattore lo
+ * scelgono le persone o un ingrediente; `anchor` è l'ingrediente da cui si è
+ * partiti, che mostra la quantità esatta scritta invece di quella arrotondata.
+ */
+type Scale = { factor: number; anchor: { id: string; quantity: number } | null };
+
+const ORIGINAL: Scale = { factor: 1, anchor: null };
+
+/**
+ * Il ricalcolo scelto nella pagina della ricetta. Sta sopra la sezione degli
+ * ingredienti perché serve anche a «Condividi», in testata: il messaggio
  * parte con le quantità che si stanno guardando.
  */
-const PeopleContext = createContext<[number, Dispatch<SetStateAction<number>>] | null>(null);
+const ScaleContext = createContext<[Scale, Dispatch<SetStateAction<Scale>>] | null>(null);
 
-export function RecipePeople({ servings, children }: { servings: number | null; children: ReactNode }) {
-  const people = useState(servings ?? 0);
-  return <PeopleContext.Provider value={people}>{children}</PeopleContext.Provider>;
+export function RecipeScale({ children }: { children: ReactNode }) {
+  const scale = useState(ORIGINAL);
+  return <ScaleContext.Provider value={scale}>{children}</ScaleContext.Provider>;
 }
 
-/** Le persone scelte nella pagina; `null` se la ricetta non dice per quante è. */
-export function useRecipePeople(): number | null {
-  const people = useContext(PeopleContext)?.[0];
-  return people && people > 0 ? people : null;
+/** Il fattore scelto nella pagina; 1 per la ricetta com'è scritta. */
+export function useRecipeFactor(): number {
+  return useContext(ScaleContext)?.[0].factor ?? 1;
 }
 
-/** Lo stepper di iOS: meno e più in una pista grigia, il numero in mezzo. */
+/**
+ * Lo stepper di iOS: meno e più in una pista grigia, il numero in mezzo. Le
+ * persone hanno la virgola quando il ricalcolo viene da un ingrediente.
+ */
 export function PeopleStepper({ value, onChange }: { value: number; onChange: (people: number) => void }) {
   return (
     <div className="flex items-center rounded-control bg-fill">
@@ -61,19 +84,19 @@ export function PeopleStepper({ value, onChange }: { value: number; onChange: (p
         type="button"
         aria-label="Una persona in meno"
         disabled={value <= 1}
-        onClick={() => onChange(Math.max(1, value - 1))}
+        onClick={() => onChange(stepPeople(value, -1))}
         className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
       >
         −
       </button>
       <span aria-live="polite" className="min-w-7 text-center text-[15px] font-semibold text-label tabular-nums">
-        {value}
+        {formatPeople(value)}
       </span>
       <button
         type="button"
         aria-label="Una persona in più"
         disabled={value >= 99}
-        onClick={() => onChange(Math.min(99, value + 1))}
+        onClick={() => onChange(stepPeople(value, 1))}
         className="flex size-9 items-center justify-center text-[20px] text-tint disabled:opacity-30"
       >
         +
@@ -83,36 +106,117 @@ export function PeopleStepper({ value, onChange }: { value: number; onChange: (p
 }
 
 /**
- * La sezione «Ingredienti» con il selettore delle porzioni. Il ricalcolo è
- * tutto nel browser: cambiare le persone non tocca la ricetta salvata.
+ * La casella che prende il posto della quantità toccata. Invio o un tocco
+ * fuori applicano, Esc annulla; una quantità che non si legge (vuota, zero,
+ * «tanto») lascia tutto com'era.
+ */
+function QuantityEditor({
+  name,
+  initial,
+  unit,
+  onDone,
+}: {
+  name: string;
+  initial: string;
+  unit: string;
+  onDone: (quantity: number | null) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  // Invio chiude la casella, e la casella che sparisce perde il fuoco: si
+  // applica una volta sola.
+  const finished = useRef(false);
+
+  useEffect(() => {
+    input.current?.focus();
+    input.current?.select();
+  }, []);
+
+  function finish(quantity: number | null) {
+    if (finished.current) return;
+    finished.current = true;
+    onDone(quantity);
+  }
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        finish(parseQuantity(input.current?.value));
+      }}
+      className="flex shrink-0 items-center gap-1.5"
+    >
+      {/* 16 px: sotto, Safari ingrandisce la pagina quando la casella prende il fuoco. */}
+      <input
+        ref={input}
+        defaultValue={initial}
+        inputMode="decimal"
+        enterKeyHint="done"
+        autoComplete="off"
+        aria-label={`Quantità di ${name}`}
+        onBlur={(event) => finish(parseQuantity(event.currentTarget.value))}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") finish(null);
+        }}
+        className="w-20 rounded-control border border-tint bg-fill px-2 py-1 text-right text-base font-medium text-label tabular-nums outline-none focus:ring-2 focus:ring-tint/25"
+      />
+      {unit && <span className="font-medium">{unit}</span>}
+    </form>
+  );
+}
+
+/** «300 g di farina», «2 uova»: l'ingrediente da cui è partito il ricalcolo, dentro una frase. */
+function anchorText(quantity: number, unit: string | null, name: string): string {
+  const lower = name.charAt(0).toLowerCase() + name.slice(1);
+  const amount = quantityInput(quantity);
+  return unit ? `${amount} ${unitLabel(unit, quantity)} di ${lower}` : `${amount} ${lower}`;
+}
+
+/** «persona» o «persone»: 2,4 persone, ma anche 0,6 persone. */
+function peopleLabel(people: number): string {
+  return `${formatPeople(people)} ${people === 1 ? "persona" : "persone"}`;
+}
+
+/**
+ * La sezione «Ingredienti» con il ricalcolo delle quantità: dalle persone,
+ * con lo stepper, o da un ingrediente, toccandone la quantità («ho solo 300 g
+ * di farina»). Il ricalcolo è tutto nel browser: non tocca la ricetta salvata.
  */
 export function IngredientsSection({ ingredients, servings }: { ingredients: Ingredient[]; servings: number | null }) {
-  // Le persone sono quelle della pagina, se c'è `RecipePeople`; altrimenti della sezione.
-  const shared = useContext(PeopleContext);
-  const own = useState(servings ?? 0);
-  const [people, setPeople] = shared ?? own;
-  const canScale = servings !== null && servings > 0;
+  // Il ricalcolo è quello della pagina, se c'è `RecipeScale`; altrimenti della sezione.
+  const shared = useContext(ScaleContext);
+  const own = useState(ORIGINAL);
+  const [scale, setScale] = shared ?? own;
+  const [editing, setEditing] = useState<string | null>(null);
+
+  const people = peopleFor(servings, scale.factor);
+  const scaled = !isOriginalScale(scale.factor);
+  const anchor = scale.anchor ? ingredients.find((item) => item.id === scale.anchor?.id) : undefined;
+  const canEdit = ingredients.some((item) => item.quantity !== null && item.quantity > 0);
+
+  const resetButton = scaled && (
+    <button
+      type="button"
+      aria-label={servings ? `Torna a ${peopleLabel(servings)}` : "Torna alle quantità della ricetta"}
+      title="Ripristina le quantità della ricetta"
+      onClick={() => setScale(ORIGINAL)}
+      className="flex size-9 items-center justify-center rounded-full text-tint transition hover:bg-fill"
+    >
+      <ResetIcon className="size-[18px]" />
+    </button>
+  );
 
   return (
     <section className="flex flex-col">
-      <header className="mb-2 flex flex-wrap items-center justify-between gap-3 px-1">
+      <header className="mb-2 flex min-h-9 flex-wrap items-center justify-between gap-3 px-1">
         <h2 className="text-[15px] font-semibold tracking-tight">Ingredienti</h2>
-        {canScale && (
+        {servings && people !== null ? (
           <div className="flex items-center gap-2 text-[13px] text-label-secondary">
-            {people !== servings && (
-              <button
-                type="button"
-                aria-label={`Torna a ${servings} ${servings === 1 ? "persona" : "persone"}`}
-                title="Ripristina le quantità della ricetta"
-                onClick={() => setPeople(servings)}
-                className="flex size-9 items-center justify-center rounded-full text-tint transition hover:bg-fill"
-              >
-                <ResetIcon className="size-[18px]" />
-              </button>
-            )}
+            {resetButton}
             <span>Persone</span>
-            <PeopleStepper value={people} onChange={setPeople} />
+            <PeopleStepper value={people} onChange={(next) => setScale({ factor: factorForPeople(servings, next), anchor: null })} />
           </div>
+        ) : (
+          resetButton
         )}
       </header>
 
@@ -129,15 +233,46 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
               )}
               <ul className="divide-y divide-separator">
                 {group.items.map((item) => {
-                  const quantity = canScale ? scaleQuantity(item.quantity, servings, people) : item.quantity;
-                  const amount = [formatQuantity(quantity, item.unit), unitLabel(item.unit, quantity)].filter(Boolean).join(" ");
+                  // L'ingrediente da cui si è partiti tiene la quantità scritta, senza arrotondarla.
+                  const isAnchor = scale.anchor?.id === item.id;
+                  const quantity = isAnchor && scale.anchor ? scale.anchor.quantity : scaleQuantity(item.quantity, scale.factor);
+                  const shown = isAnchor && quantity !== null ? quantityInput(quantity) : formatQuantity(quantity, item.unit);
+                  const unit = unitLabel(item.unit, quantity);
+                  const amount = [shown, unit].filter(Boolean).join(" ");
+                  const editable = item.quantity !== null && item.quantity > 0;
                   return (
-                    <li key={item.id} className="flex items-baseline justify-between gap-4 px-4 py-2.5 text-[15px]">
-                      <span>
+                    <li key={item.id} className="flex min-h-11 items-center justify-between gap-4 px-4 py-1.5 text-[15px]">
+                      <span className="py-1">
                         {item.name}
                         {item.note && <span className="text-label-secondary"> · {item.note}</span>}
                       </span>
-                      {amount && <span className="shrink-0 font-medium tabular-nums">{amount}</span>}
+                      {editing === item.id ? (
+                        <QuantityEditor
+                          name={item.name}
+                          initial={shown}
+                          unit={unit}
+                          onDone={(wanted) => {
+                            setEditing(null);
+                            const factor = factorForQuantity(item.quantity, wanted);
+                            if (factor !== null && wanted !== null) {
+                              setScale(isOriginalScale(factor) ? ORIGINAL : { factor, anchor: { id: item.id, quantity: wanted } });
+                            }
+                          }}
+                        />
+                      ) : editable ? (
+                        <button
+                          type="button"
+                          aria-label={`${item.name}: ${amount}. Cambia la quantità per ricalcolare le altre`}
+                          onClick={() => setEditing(item.id)}
+                          className={`-mr-2 shrink-0 rounded-control px-2 py-1 font-medium text-tint tabular-nums transition hover:bg-fill ${
+                            isAnchor ? "bg-tint/15" : ""
+                          }`}
+                        >
+                          {amount}
+                        </button>
+                      ) : (
+                        amount && <span className="shrink-0 font-medium tabular-nums">{amount}</span>
+                      )}
                     </li>
                   );
                 })}
@@ -146,10 +281,18 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
           ))
         )}
       </div>
-      {canScale && people !== servings && (
+      {scaled && anchor && scale.anchor ? (
         <p className="mt-2 px-1 text-[12px] text-label-secondary">
-          Quantità ricalcolate da {servings} a {people} {people === 1 ? "persona" : "persone"}.
+          Quantità ricalcolate partendo da{" "}
+          {anchorText(scale.anchor.quantity, anchor.unit, anchor.name)}
+          {people !== null && `: bastano per ${peopleLabel(people)}`}.
         </p>
+      ) : scaled && servings && people !== null ? (
+        <p className="mt-2 px-1 text-[12px] text-label-secondary">
+          Quantità ricalcolate da {servings} a {peopleLabel(people)}.
+        </p>
+      ) : (
+        canEdit && <p className="mt-2 px-1 text-[12px] text-label-secondary">Tocca una quantità per ricalcolare le altre.</p>
       )}
     </section>
   );

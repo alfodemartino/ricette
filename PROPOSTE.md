@@ -116,6 +116,13 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
   le persone scelte; lo compone `src/lib/share.ts`. Per mandarlo c'è il
   pannello del telefono in HTTPS, mentre WhatsApp (`wa.me`), la copia e
   l'email funzionano anche in http.
+- **Ricalcolo da un ingrediente** (ottobre 2026): toccando la quantità di un
+  ingrediente se ne scrive un'altra («ho solo 300 g di farina») e tutte le
+  altre si adeguano. Il ricalcolo è un fattore solo (`src/lib/ingredients.ts`),
+  che scelgono sia le persone sia l'ingrediente; vale anche per le ricette
+  senza porzioni, e «Condividi» parte da lì. Le persone possono avere la
+  virgola (2,4): lo stepper torna all'intero vicino, il messaggio dice «circa
+  2 persone».
 
 ### Accantonate
 

@@ -2,15 +2,15 @@
 
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { recipesToShareAction } from "@/app/actions/share";
-import { useRecipePeople } from "@/components/RecipeView";
+import { useRecipeFactor } from "@/components/RecipeView";
 import { ShareSheet } from "@/components/ShareSheet";
 import { ShareIcon, buttonClass } from "@/components/ui";
 import type { ShareableRecipe } from "@/lib/share";
 
-/** «Condividi» nella pagina della ricetta: il messaggio parte dalle persone scelte negli ingredienti. */
+/** «Condividi» nella pagina della ricetta: il messaggio parte dalle quantità scelte negli ingredienti. */
 export function ShareRecipeButton({ recipe }: { recipe: ShareableRecipe }) {
   const [open, setOpen] = useState(false);
-  const people = useRecipePeople();
+  const factor = useRecipeFactor();
 
   return (
     <>
@@ -28,7 +28,7 @@ export function ShareRecipeButton({ recipe }: { recipe: ShareableRecipe }) {
         onClose={() => setOpen(false)}
         heading="Condividi la ricetta"
         recipes={[recipe]}
-        initialPeople={people}
+        initialFactor={factor}
       />
     </>
   );

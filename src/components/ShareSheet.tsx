@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type
 import { PeopleStepper } from "@/components/RecipeView";
 import { Alert, Skeleton, buttonClass } from "@/components/ui";
 import { copyText } from "@/lib/clipboard";
+import { factorForPeople, peopleFor } from "@/lib/ingredients";
 import {
   mailtoHref,
   recipeShareText,
@@ -66,7 +67,7 @@ export function ShareSheet({
   heading,
   recipes,
   error = null,
-  initialPeople = null,
+  initialFactor = 1,
 }: {
   open: boolean;
   onClose: () => void;
@@ -74,8 +75,8 @@ export function ShareSheet({
   /** `null` mentre il server prepara le ricette. */
   recipes: ShareableRecipe[] | null;
   error?: string | null;
-  /** Le persone scelte nella pagina della ricetta, da cui parte lo stepper. */
-  initialPeople?: number | null;
+  /** Il ricalcolo scelto nella pagina della ricetta, da cui parte il messaggio. */
+  initialFactor?: number;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const pressedBackdrop = useRef(false);
@@ -87,17 +88,18 @@ export function ShareSheet({
   // di più ricette insieme ognuna parte con le sue porzioni.
   const single = recipes?.length === 1 ? recipes[0] : null;
   const servings = single?.servings && single.servings > 0 ? single.servings : null;
-  const [people, setPeople] = useState(0);
+  const [factor, setFactor] = useState(1);
+  const people = peopleFor(servings, factor);
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // A ogni apertura si riparte dalle persone della pagina, senza avvisi vecchi.
+  // A ogni apertura si riparte dalle quantità della pagina, senza avvisi vecchi.
   useEffect(() => {
     if (!open) return;
-    setPeople(initialPeople ?? servings ?? 0);
+    setFactor(initialFactor);
     setCopied(false);
     setNotice(null);
-  }, [open, initialPeople, servings]);
+  }, [open, initialFactor]);
 
   // Il `<dialog>` segue lo stato a ogni render, non solo quando `open` cambia:
   // se i due si fossero separati, il tocco successivo su «Condividi» lo
@@ -120,8 +122,8 @@ export function ShareSheet({
 
   const text = useMemo(() => {
     if (!recipes || recipes.length === 0) return "";
-    return single ? recipeShareText(single, people) : recipesShareText(recipes);
-  }, [recipes, single, people]);
+    return single ? recipeShareText(single, factor) : recipesShareText(recipes);
+  }, [recipes, single, factor]);
   const subject = recipes ? shareSubject(recipes) : "";
   const ready = text !== "";
 
@@ -178,10 +180,10 @@ export function ShareSheet({
           </button>
         </header>
 
-        {servings !== null && (
+        {servings !== null && people !== null && (
           <div className="flex items-center justify-between gap-3 rounded-card bg-surface py-1.5 pr-1.5 pl-4 text-[15px]">
             Persone
-            <PeopleStepper value={people || servings} onChange={setPeople} />
+            <PeopleStepper value={people} onChange={(next) => setFactor(factorForPeople(servings, next))} />
           </div>
         )}
 

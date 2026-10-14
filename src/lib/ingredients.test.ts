@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  factorForPeople,
+  factorForQuantity,
+  formatPeople,
   formatQuantity,
+  isOriginalScale,
   normalizeUnit,
   parseIngredientLine,
   parseIngredientList,
   parseQuantity,
+  peopleFor,
   quantityInput,
   scaleQuantity,
+  stepPeople,
   unitLabel,
 } from "./ingredients";
 
@@ -104,14 +110,57 @@ describe("unità", () => {
 });
 
 describe("porzioni", () => {
-  it("ricalcola in proporzione", () => {
-    expect(scaleQuantity(300, 4, 2)).toBe(150);
-    expect(scaleQuantity(2, 4, 6)).toBe(3);
+  it("ricalcola in proporzione alle persone", () => {
+    expect(scaleQuantity(300, factorForPeople(4, 2))).toBe(150);
+    expect(scaleQuantity(2, factorForPeople(4, 6))).toBe(3);
   });
 
   it("lascia stare le quantità senza numero di porzioni", () => {
-    expect(scaleQuantity(300, null, 2)).toBe(300);
-    expect(scaleQuantity(null, 4, 2)).toBeNull();
+    expect(factorForPeople(null, 2)).toBe(1);
+    expect(scaleQuantity(300, factorForPeople(null, 2))).toBe(300);
+    expect(scaleQuantity(null, 2)).toBeNull();
+  });
+
+  it("ricalcola tutto dalla quantità di un ingrediente", () => {
+    // Ho 300 g di farina invece di 500: tutto il resto ×0,6.
+    const factor = factorForQuantity(500, 300);
+    expect(factor).toBeCloseTo(0.6);
+    expect(formatQuantity(scaleQuantity(500, factor!), "g")).toBe("300");
+    expect(formatQuantity(scaleQuantity(3, factor!), null)).toBe("1,8");
+    expect(formatQuantity(scaleQuantity(250, factor!), "ml")).toBe("150");
+    expect(peopleFor(4, factor!)).toBe(2.4);
+  });
+
+  it("non ricava un fattore da quantità mancanti o nulle", () => {
+    expect(factorForQuantity(null, 300)).toBeNull();
+    expect(factorForQuantity(500, null)).toBeNull();
+    expect(factorForQuantity(0, 300)).toBeNull();
+    expect(factorForQuantity(500, 0)).toBeNull();
+    expect(factorForQuantity(500, -1)).toBeNull();
+  });
+
+  it("riconosce la ricetta com'è scritta", () => {
+    expect(isOriginalScale(1)).toBe(true);
+    expect(isOriginalScale(factorForQuantity(3, 3)!)).toBe(true);
+    expect(isOriginalScale(0.6 * (1 / 0.6))).toBe(true);
+    expect(isOriginalScale(1.5)).toBe(false);
+  });
+
+  it("dice le persone solo se la ricetta le indica", () => {
+    expect(peopleFor(4, 1.5)).toBe(6);
+    expect(peopleFor(null, 1.5)).toBeNull();
+    expect(formatPeople(6)).toBe("6");
+    expect(formatPeople(2.4)).toBe("2,4");
+  });
+
+  it("dalle persone con la virgola, meno e più vanno all'intero vicino", () => {
+    expect(stepPeople(2.4, -1)).toBe(2);
+    expect(stepPeople(2.4, 1)).toBe(3);
+    expect(stepPeople(4, -1)).toBe(3);
+    expect(stepPeople(4, 1)).toBe(5);
+    expect(stepPeople(1, -1)).toBe(1);
+    expect(stepPeople(0.6, 1)).toBe(1);
+    expect(stepPeople(99, 1)).toBe(99);
   });
 });
 
