@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import {
+  convertibleUnits,
+  factorForAmount,
   factorForPeople,
-  factorForQuantity,
   formatPeople,
   formatQuantity,
   isOriginalScale,
-  parseQuantity,
+  parseAmount,
   peopleFor,
   quantityInput,
   scaleQuantity,
@@ -50,9 +51,10 @@ function ResetIcon({ className = "" }: { className?: string }) {
 /**
  * Di quanto sono ricalcolate le quantità nella pagina. Il fattore lo
  * scelgono le persone o un ingrediente; `anchor` è l'ingrediente da cui si è
- * partiti, che mostra la quantità esatta scritta invece di quella arrotondata.
+ * partiti, che mostra la quantità esatta scritta invece di quella arrotondata,
+ * nell'unità in cui è stata scritta.
  */
-type Scale = { factor: number; anchor: { id: string; quantity: number } | null };
+type Scale = { factor: number; anchor: { id: string; quantity: number; unit: string | null } | null };
 
 const ORIGINAL: Scale = { factor: 1, anchor: null };
 
@@ -105,23 +107,33 @@ export function PeopleStepper({ value, onChange }: { value: number; onChange: (p
   );
 }
 
+type Amount = { quantity: number; unit: string | null };
+
 /**
- * La casella che prende il posto della quantità toccata. Invio o un tocco
- * fuori applicano, Esc annulla; una quantità che non si legge (vuota, zero,
- * «tanto») lascia tutto com'era.
+ * La casella che prende il posto della quantità toccata. Accanto, quando
+ * l'ingrediente è a peso o a volume, la scelta dell'unità: le patate segnate
+ * «1 kg» si possono pesare in grammi. Anche l'unità scritta nella casella
+ * («600 g») vale. Invio o un tocco fuori applicano, Esc annulla; una quantità
+ * che non si legge (vuota, zero, «tanto», un'unità che non c'entra) lascia
+ * tutto com'era.
  */
 function QuantityEditor({
   name,
   initial,
-  unit,
+  initialUnit,
+  units,
   onDone,
 }: {
   name: string;
   initial: string;
-  unit: string;
-  onDone: (quantity: number | null) => void;
+  initialUnit: string | null;
+  /** Le unità in cui si può scrivere la quantità; una sola se non si converte. */
+  units: (string | null)[];
+  onDone: (amount: Amount | null) => void;
 }) {
+  const form = useRef<HTMLFormElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const [unit, setUnit] = useState(initialUnit);
   // Invio chiude la casella, e la casella che sparisce perde il fuoco: si
   // applica una volta sola.
   const finished = useRef(false);
@@ -131,17 +143,32 @@ function QuantityEditor({
     input.current?.select();
   }, []);
 
-  function finish(quantity: number | null) {
+  function finish(amount: Amount | null) {
     if (finished.current) return;
     finished.current = true;
-    onDone(quantity);
+    onDone(amount);
+  }
+
+  /** Quello che c'è scritto, nell'unità scritta o, se manca, in quella scelta accanto. */
+  function written(): Amount | null {
+    const parsed = parseAmount(input.current?.value);
+    return parsed ? { quantity: parsed.quantity, unit: parsed.unit ?? unit } : null;
   }
 
   return (
     <form
+      ref={form}
       onSubmit={(event) => {
         event.preventDefault();
-        finish(parseQuantity(input.current?.value));
+        finish(written());
+      }}
+      // Si applica quando il fuoco esce dalla casella e dalla scelta dell'unità,
+      // non quando passa dall'una all'altra.
+      onBlur={(event) => {
+        if (!form.current?.contains(event.relatedTarget)) finish(written());
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") finish(null);
       }}
       className="flex shrink-0 items-center gap-1.5"
     >
@@ -153,13 +180,28 @@ function QuantityEditor({
         enterKeyHint="done"
         autoComplete="off"
         aria-label={`Quantità di ${name}`}
-        onBlur={(event) => finish(parseQuantity(event.currentTarget.value))}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") finish(null);
-        }}
         className="w-20 rounded-control border border-tint bg-fill px-2 py-1 text-right text-base font-medium text-label tabular-nums outline-none focus:ring-2 focus:ring-tint/25"
       />
-      {unit && <span className="font-medium">{unit}</span>}
+      {units.length > 1 ? (
+        <select
+          value={unit ?? ""}
+          aria-label={`Unità di ${name}`}
+          onChange={(event) => {
+            setUnit(event.target.value);
+            // Si torna al numero: Invio sulla tastiera applica.
+            input.current?.focus();
+          }}
+          className="rounded-control bg-fill px-1.5 py-1 text-base font-medium text-label outline-none focus:ring-2 focus:ring-tint/25"
+        >
+          {units.map((option) => (
+            <option key={option} value={option ?? ""}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : (
+        unit && <span className="font-medium">{unitLabel(unit, parseAmount(initial)?.quantity ?? null)}</span>
+      )}
     </form>
   );
 }
@@ -234,11 +276,12 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
               <ul className="divide-y divide-separator">
                 {group.items.map((item) => {
                   // L'ingrediente da cui si è partiti tiene la quantità scritta, senza arrotondarla.
-                  const isAnchor = scale.anchor?.id === item.id;
-                  const quantity = isAnchor && scale.anchor ? scale.anchor.quantity : scaleQuantity(item.quantity, scale.factor);
-                  const shown = isAnchor && quantity !== null ? quantityInput(quantity) : formatQuantity(quantity, item.unit);
-                  const unit = unitLabel(item.unit, quantity);
-                  const amount = [shown, unit].filter(Boolean).join(" ");
+                  // Anche nell'unità in cui è stata scritta: «600 g» di patate segnate in chili.
+                  const itemAnchor = scale.anchor?.id === item.id ? scale.anchor : null;
+                  const quantity = itemAnchor ? itemAnchor.quantity : scaleQuantity(item.quantity, scale.factor);
+                  const quantityUnit = itemAnchor ? itemAnchor.unit : item.unit;
+                  const shown = itemAnchor ? quantityInput(itemAnchor.quantity) : formatQuantity(quantity, item.unit);
+                  const amount = [shown, unitLabel(quantityUnit, quantity)].filter(Boolean).join(" ");
                   const editable = item.quantity !== null && item.quantity > 0;
                   return (
                     <li key={item.id} className="flex min-h-11 items-center justify-between gap-4 px-4 py-1.5 text-[15px]">
@@ -250,13 +293,14 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
                         <QuantityEditor
                           name={item.name}
                           initial={shown}
-                          unit={unit}
+                          initialUnit={quantityUnit}
+                          units={convertibleUnits(item.unit)}
                           onDone={(wanted) => {
                             setEditing(null);
-                            const factor = factorForQuantity(item.quantity, wanted);
-                            if (factor !== null && wanted !== null) {
-                              setScale(isOriginalScale(factor) ? ORIGINAL : { factor, anchor: { id: item.id, quantity: wanted } });
-                            }
+                            if (!wanted) return;
+                            const factor = factorForAmount(item.quantity, item.unit, wanted.quantity, wanted.unit);
+                            if (factor === null) return;
+                            setScale(isOriginalScale(factor) ? ORIGINAL : { factor, anchor: { id: item.id, ...wanted } });
                           }}
                         />
                       ) : editable ? (
@@ -265,7 +309,7 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
                           aria-label={`${item.name}: ${amount}. Cambia la quantità per ricalcolare le altre`}
                           onClick={() => setEditing(item.id)}
                           className={`-mr-2 shrink-0 rounded-control px-2 py-1 font-medium text-tint tabular-nums transition hover:bg-fill ${
-                            isAnchor ? "bg-tint/15" : ""
+                            itemAnchor ? "bg-tint/15" : ""
                           }`}
                         >
                           {amount}
@@ -284,7 +328,7 @@ export function IngredientsSection({ ingredients, servings }: { ingredients: Ing
       {scaled && anchor && scale.anchor ? (
         <p className="mt-2 px-1 text-[12px] text-label-secondary">
           Quantità ricalcolate partendo da{" "}
-          {anchorText(scale.anchor.quantity, anchor.unit, anchor.name)}
+          {anchorText(scale.anchor.quantity, scale.anchor.unit, anchor.name)}
           {people !== null && `: bastano per ${peopleLabel(people)}`}.
         </p>
       ) : scaled && servings && people !== null ? (

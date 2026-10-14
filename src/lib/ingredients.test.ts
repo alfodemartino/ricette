@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  convertibleUnits,
+  convertQuantity,
+  factorForAmount,
   factorForPeople,
   factorForQuantity,
   formatPeople,
   formatQuantity,
   isOriginalScale,
   normalizeUnit,
+  parseAmount,
   parseIngredientLine,
   parseIngredientList,
   parseQuantity,
@@ -129,6 +133,51 @@ describe("porzioni", () => {
     expect(formatQuantity(scaleQuantity(3, factor!), null)).toBe("1,8");
     expect(formatQuantity(scaleQuantity(250, factor!), "ml")).toBe("150");
     expect(peopleFor(4, factor!)).toBe(2.4);
+  });
+
+  it("ricalcola da una quantità scritta in un'altra unità", () => {
+    // Patate segnate «1 kg», ne ho 600 g: ×0,6, non ×600.
+    expect(factorForAmount(1, "kg", 600, "g")).toBeCloseTo(0.6);
+    expect(factorForAmount(500, "g", 1, "kg")).toBeCloseTo(2);
+    expect(factorForAmount(1, "l", 250, "ml")).toBeCloseTo(0.25);
+    expect(factorForAmount(5, "dl", 1, "l")).toBeCloseTo(2);
+    expect(factorForAmount(3, null, 2, null)).toBeCloseTo(2 / 3);
+    expect(factorForAmount(2, "cucchiaio", 1, "cucchiaio")).toBeCloseTo(0.5);
+  });
+
+  it("non converte fra unità di gruppi diversi o senza misura fissa", () => {
+    expect(factorForAmount(1, "kg", 600, "ml")).toBeNull();
+    expect(factorForAmount(2, "cucchiaio", 10, "g")).toBeNull();
+    expect(factorForAmount(3, null, 200, "g")).toBeNull();
+    expect(convertQuantity(600, "g", "kg")).toBeCloseTo(0.6);
+    expect(convertQuantity(null, "g", "kg")).toBeNull();
+  });
+
+  it("propone le unità in cui si può scrivere la quantità", () => {
+    expect(convertibleUnits("kg")).toEqual(["g", "kg"]);
+    expect(convertibleUnits("g")).toEqual(["g", "kg"]);
+    expect(convertibleUnits("ml")).toEqual(["ml", "l"]);
+    expect(convertibleUnits("dl")).toEqual(["ml", "dl", "l"]);
+    expect(convertibleUnits("cucchiaio")).toEqual(["cucchiaio"]);
+    expect(convertibleUnits(null)).toEqual([null]);
+  });
+
+  it.each([
+    ["600", { quantity: 600, unit: null }],
+    ["600 g", { quantity: 600, unit: "g" }],
+    ["600g", { quantity: 600, unit: "g" }],
+    ["0,6 kg", { quantity: 0.6, unit: "kg" }],
+    ["1½", { quantity: 1.5, unit: null }],
+    ["2 cucchiai", { quantity: 2, unit: "cucchiaio" }],
+    ["1 gr.", { quantity: 1, unit: "g" }],
+  ])("legge «%s» nella casella della quantità", (raw, expected) => {
+    expect(parseAmount(raw)).toEqual(expected);
+  });
+
+  it("non legge una quantità con un'unità sconosciuta", () => {
+    expect(parseAmount("600 pezzettoni")).toBeNull();
+    expect(parseAmount("tanto")).toBeNull();
+    expect(parseAmount("")).toBeNull();
   });
 
   it("non ricava un fattore da quantità mancanti o nulle", () => {
