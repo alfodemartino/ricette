@@ -122,7 +122,10 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
   che scelgono sia le persone sia l'ingrediente; vale anche per le ricette
   senza porzioni, e «Condividi» parte da lì. Le persone possono avere la
   virgola (2,4): lo stepper torna all'intero vicino, il messaggio dice «circa
-  2 persone».
+  2 persone». La quantità si scrive anche in un'altra unità dello stesso
+  gruppo (patate segnate «1 kg», pesate «600 g»): accanto alla casella c'è la
+  scelta fra grammi e chili, o millilitri e litri, e vale anche l'unità
+  scritta nella casella.
 
 ### Accantonate
 

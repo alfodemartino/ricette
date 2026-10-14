@@ -319,6 +319,82 @@ export function factorForPeople(from: number | null, to: number | null): number 
   return to / from;
 }
 
+/**
+ * Le unità che si convertono l'una nell'altra, con quanto vale ognuna
+ * nell'unità più piccola del suo gruppo. Le altre (cucchiai, tazze, spicchi)
+ * non hanno una misura fissa e restano come sono.
+ */
+const CONVERTIBLE: Record<string, { group: "peso" | "volume"; size: number }> = {
+  mg: { group: "peso", size: 0.001 },
+  g: { group: "peso", size: 1 },
+  kg: { group: "peso", size: 1000 },
+  ml: { group: "volume", size: 1 },
+  cl: { group: "volume", size: 10 },
+  dl: { group: "volume", size: 100 },
+  l: { group: "volume", size: 1000 },
+};
+
+/** Le unità che si propongono di solito per un gruppo: nessuno scrive in centilitri. */
+const EVERYDAY_UNITS = { peso: ["g", "kg"], volume: ["ml", "l"] };
+
+function sameUnit(a: string | null, b: string | null): boolean {
+  return (a ?? "").toLowerCase() === (b ?? "").toLowerCase();
+}
+
+/**
+ * Le unità in cui si può scrivere la quantità di un ingrediente segnato in
+ * `unit`: per il peso grammi e chili, per i liquidi millilitri e litri, più
+ * l'unità della ricetta se è un'altra (mg, cl, dl). Un'unità che non si
+ * converte ha solo sé stessa.
+ */
+export function convertibleUnits(unit: string | null): (string | null)[] {
+  const info = unit ? CONVERTIBLE[unit.toLowerCase()] : undefined;
+  if (!info) return [unit];
+  const units = new Set([...EVERYDAY_UNITS[info.group], unit!.toLowerCase()]);
+  return [...units].sort((a, b) => CONVERTIBLE[a].size - CONVERTIBLE[b].size);
+}
+
+/** Una quantità in un'altra unità dello stesso gruppo: 600 g → 0,6 kg. `null` se non si converte. */
+export function convertQuantity(quantity: number | null, from: string | null, to: string | null): number | null {
+  if (quantity === null) return null;
+  if (sameUnit(from, to)) return quantity;
+  const source = from ? CONVERTIBLE[from.toLowerCase()] : undefined;
+  const target = to ? CONVERTIBLE[to.toLowerCase()] : undefined;
+  if (!source || !target || source.group !== target.group) return null;
+  return (quantity * source.size) / target.size;
+}
+
+const AMOUNT = new RegExp(`^(${QUANTITY_SOURCE})\\s*(.*?)\\.?$`, "iu");
+
+/**
+ * Quello che si scrive nella casella della quantità: un numero, con o senza
+ * unità («600», «600 g», «600g», «0,6 kg»). L'unità è `null` se non c'è;
+ * se c'è ma non si riconosce, non è una quantità e il risultato è `null`.
+ */
+export function parseAmount(raw: string | null | undefined): { quantity: number; unit: string | null } | null {
+  const match = raw?.trim().match(AMOUNT);
+  if (!match) return null;
+  const quantity = parseQuantity(match[1]);
+  if (quantity === null) return null;
+  if (!match[2].trim()) return { quantity, unit: null };
+  const unit = normalizeUnit(match[2]);
+  return unit ? { quantity, unit } : null;
+}
+
+/**
+ * Il fattore che porta un ingrediente alla quantità scritta, anche in
+ * un'unità diversa dalla sua: «600 g» di patate segnate «1 kg» fa ×0,6.
+ * `null` se le unità non si convertono o le quantità non vanno.
+ */
+export function factorForAmount(
+  original: number | null,
+  originalUnit: string | null,
+  wanted: number | null,
+  wantedUnit: string | null,
+): number | null {
+  return factorForQuantity(original, convertQuantity(wanted, wantedUnit, originalUnit));
+}
+
 /** Il fattore che porta un ingrediente da `original` a `wanted`; `null` se non si può. */
 export function factorForQuantity(original: number | null, wanted: number | null): number | null {
   if (original === null || wanted === null || !(original > 0) || !(wanted > 0)) return null;
