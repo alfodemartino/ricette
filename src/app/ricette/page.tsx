@@ -1,6 +1,7 @@
 import { NavLink } from "@/components/NavLink";
 import { RecipeCard } from "@/components/RecipeCard";
 import { RecipeSearch } from "@/components/RecipeSearch";
+import { SearchModes } from "@/components/SearchModes";
 import { HideWhileSelecting, ShareRecipesProvider, ShareSelectionToggle } from "@/components/ShareRecipes";
 import { ButtonLink, EmptyState } from "@/components/ui";
 import { CATEGORIES } from "@/lib/categories";
@@ -67,6 +68,8 @@ export default async function RecipesPage({
           </div>
         </header>
 
+        <SearchModes active="nome" />
+
         {recipes.length === 0 ? (
           <div className="rounded-card bg-surface">
             <EmptyState>
@@ -77,11 +80,6 @@ export default async function RecipesPage({
           <>
             <div className="space-y-3">
               <RecipeSearch filters={filters} />
-              <p className="px-1 text-[13px]">
-                <NavLink href="/ricette/cosa-cucino" className="font-medium text-tint hover:underline">
-                  Cosa cucino con quello che ho? ›
-                </NavLink>
-              </p>
 
               {/* Le pastiglie scorrono in orizzontale sul telefono invece di
                   andare a capo in cinque righe. */}

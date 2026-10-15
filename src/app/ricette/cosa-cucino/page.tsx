@@ -1,7 +1,7 @@
 import Form from "next/form";
 import { CookWithOnline } from "@/components/CookWithOnline";
 import { MatchFacts } from "@/components/MatchFacts";
-import { NavLink } from "@/components/NavLink";
+import { SearchModes } from "@/components/SearchModes";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Alert, buttonClass, EmptyState, Input } from "@/components/ui";
 import {
@@ -88,15 +88,15 @@ export default async function CookWithPage({
   return (
     <div className="space-y-6">
       <header>
-        <NavLink href="/ricette" className="text-[15px] text-tint hover:underline">
-          ‹ Ricette
-        </NavLink>
-        <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em]">Cosa cucino con…</h1>
+        <h1 className="text-[28px] font-bold tracking-[-0.02em]">Cosa cucino con…</h1>
         <p className="max-w-2xl text-[13px] text-label-secondary">
           Scrivi quello che hai, separato da virgole. Con le quantità («300 g zucchine») ti dico anche per quanti
           basta. Sale, pepe, olio e acqua si danno per scontati.
         </p>
       </header>
+
+      {/* Al posto di «‹ Ricette»: le due ricerche sono allo stesso livello. */}
+      <SearchModes active="ingredienti" />
 
       <Form action="/ricette/cosa-cucino" role="search" className="flex flex-col gap-2 sm:flex-row">
         <Input

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useLoadingWhile } from "@/components/LoadingOverlay";
+import { NavLink } from "@/components/NavLink";
 import { inputClass } from "@/components/ui";
 import { filtersHref, type RecipeFilters } from "@/lib/recipe-search";
 
@@ -44,6 +45,10 @@ export function RecipeSearch({ filters }: { filters: RecipeFilters }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  // Chi scrive un elenco separato da virgole («zucchine, ricotta») sta
+  // cercando cosa cucinare con quello che ha: glielo si propone.
+  const ingredients = query.includes(",") ? query.trim().replace(/,\s*$/, "") : "";
+
   return (
     <form
       role="search"
@@ -51,6 +56,7 @@ export function RecipeSearch({ filters }: { filters: RecipeFilters }) {
         event.preventDefault();
         push(query.trim());
       }}
+      className="space-y-2"
     >
       <input
         type="search"
@@ -60,6 +66,16 @@ export function RecipeSearch({ filters }: { filters: RecipeFilters }) {
         aria-label="Cerca fra le ricette"
         className={inputClass}
       />
+      {ingredients && (
+        <p className="px-1 text-[13px]">
+          <NavLink
+            href={`/ricette/cosa-cucino?${new URLSearchParams({ ingredienti: ingredients })}`}
+            className="font-medium text-tint hover:underline"
+          >
+            Cerca le ricette con questi ingredienti ›
+          </NavLink>
+        </p>
+      )}
     </form>
   );
 }
