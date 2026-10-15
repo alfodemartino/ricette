@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { parseWanted } from "@/lib/cook-with";
 import { fakeFetcher, fixture } from "./__fixtures__/fake-fetcher";
-import { BUILT_IN_SITES, clearSiteCache, resultLinks, sameSite, searchSite, searchUrlFor, type RecipeSiteConfig } from "./sites";
+import {
+  BUILT_IN_SITES,
+  clearSiteCache,
+  resultLinks,
+  sameSite,
+  searchSite,
+  searchUrlFor,
+  splitBuiltInSites,
+  type RecipeSiteConfig,
+} from "./sites";
 import { ImportError } from "./url";
 
 function site(id: string): RecipeSiteConfig {
@@ -32,6 +41,19 @@ describe("searchUrlFor", () => {
     expect(searchUrlFor(BLOG, ["zucchine", "caffè"]).href).toBe(
       "https://www.blogdiprova.it/wp-json/wp/v2/search?search=zucchine%20caff%C3%A8&per_page=10&type=post",
     );
+  });
+});
+
+describe("splitBuiltInSites", () => {
+  it("separa i siti tolti dalla famiglia, nell'ordine dell'app", () => {
+    const { active, removed } = splitBuiltInSites(["misya", "giallozafferano", "sito-che-non-esiste-piu"]);
+    expect(removed.map((entry) => entry.id)).toEqual(["giallozafferano", "misya"]);
+    expect(active).toHaveLength(BUILT_IN_SITES.length - 2);
+    expect(active.some((entry) => entry.id === "misya")).toBe(false);
+  });
+
+  it("senza siti tolti sono tutti in uso", () => {
+    expect(splitBuiltInSites([])).toEqual({ active: BUILT_IN_SITES, removed: [] });
   });
 });
 

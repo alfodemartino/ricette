@@ -202,7 +202,13 @@ export function CookWithOnline({ text, sites, prominent }: { text: string; sites
           {shown.length === 0 ? "Cerca anche online" : `Cerca anche su ${pending.length === 1 ? pending[0].name : `altri ${pending.length} siti`}`}
         </button>
       )}
-      {chosen.length === 0 && <p className="px-1 text-[13px] text-label-secondary">Accendi almeno un sito per cercare.</p>}
+      {chosen.length === 0 && (
+        <p className="px-1 text-[13px] text-label-secondary">
+          {sites.length === 0
+            ? "Nessun sito acceso per la ricerca online: accendine, aggiungine o rimettine uno in «Gestisci i siti»."
+            : "Accendi almeno un sito per cercare."}
+        </p>
+      )}
 
       {shown.length > 0 && (
         <div className="space-y-3">

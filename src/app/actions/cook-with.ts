@@ -1,12 +1,21 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { parseWanted } from "@/lib/cook-with";
-import { addFamilySite, findSearchSite, listFamilySites, MAX_FAMILY_SITES, removeFamilySite } from "@/lib/family-sites";
+import {
+  addFamilySite,
+  familySitesOverview,
+  findSearchSite,
+  listFamilySites,
+  MAX_FAMILY_SITES,
+  removeSearchSite,
+  restoreBuiltInSite,
+  setSiteEnabled,
+  type SitesOverview,
+} from "@/lib/family-sites";
 import { checkSite } from "@/lib/import/site-check";
 import { sameSite, searchSite, type WebMatch } from "@/lib/import/sites";
-import { ImportError } from "@/lib/import/url";
+import { ImportError, parseImportUrl } from "@/lib/import/url";
 import { logEvent } from "@/lib/log";
 import { familySourceIndex, recipesFromSource } from "@/lib/recipes";
 import { familyViewerOrNull } from "@/lib/session";
@@ -44,19 +53,40 @@ export async function searchSiteAction(siteId: string, text: string): Promise<Si
   }
 }
 
-/** `url` è quello scritto, che resta nella casella quando il sito non va. */
-export type AddSiteState = { error?: string; url?: string; added?: { name: string; samples: string[] } };
+/*
+ * Le azioni sui siti restituiscono l'elenco aggiornato, che la pagina mostra
+ * da sé: niente `revalidatePath`. Con la pagina da ricostruire dopo l'azione,
+ * in produzione l'attesa del pulsante poteva non chiudersi più, anche a sito
+ * già salvato. «Cosa cucino con…» è dinamica, e rilegge i siti a ogni visita.
+ */
+
+/** Il risultato di un'azione sui siti: l'elenco aggiornato, e cosa dire. */
+export type SitesState = {
+  sites?: SitesOverview;
+  error?: string;
+  /** Quello scritto nella casella, che resta quando il sito non va. */
+  url?: string;
+  added?: { name: string; samples: string[] };
+};
+
+function hostOf(url: string): string {
+  try {
+    return parseImportUrl(url).hostname;
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Aggiunge un sito per la famiglia, dopo la verifica di `checkSite`. Tutti i
  * membri possono farlo, come per le ricette; ogni aggiunta e ogni rifiuto
  * finiscono nel log.
  */
-export async function addSiteAction(_prev: AddSiteState, formData: FormData): Promise<AddSiteState> {
+export async function addSiteAction(raw: string): Promise<SitesState> {
   const viewer = await familyViewerOrNull();
   if (!viewer) return { error: EXPIRED };
 
-  const url = String(formData.get("url") ?? "").trim().slice(0, 300);
+  const url = String(raw ?? "").trim().slice(0, 300);
   const sites = await listFamilySites(viewer.familyId);
   if (sites.length >= MAX_FAMILY_SITES) {
     return { error: `La famiglia ha già ${MAX_FAMILY_SITES} siti: togline uno prima di aggiungerne un altro.`, url };
@@ -65,6 +95,12 @@ export async function addSiteAction(_prev: AddSiteState, formData: FormData): Pr
   const check = await checkSite(url);
   if (!check.ok) {
     logEvent("warn", "sito_rifiutato", { url, motivo: check.reason, utente: viewer.id });
+    // Un sito dell'app che la famiglia aveva tolto non si aggiunge: si rimette.
+    if (check.reason === "gia_presente") {
+      const overview = await familySitesOverview(viewer.familyId);
+      const removed = overview.removed.find((site) => sameSite(site.host, hostOf(url)));
+      if (removed) return { error: `${removed.name} è fra i siti dell'app che avete tolto: rimettilo qui sotto.`, url, sites: overview };
+    }
     return { error: check.message, url };
   }
 
@@ -81,15 +117,41 @@ export async function addSiteAction(_prev: AddSiteState, formData: FormData): Pr
     throw error;
   }
   logEvent("warn", "sito_aggiunto", { sito: check.site.host, tipo: check.site.kind, famiglia: viewer.familyId, utente: viewer.id });
-  revalidatePath("/ricette/cosa-cucino");
-  return { added: { name: check.site.name, samples: check.samples } };
+  return { added: { name: check.site.name, samples: check.samples }, sites: await familySitesOverview(viewer.familyId) };
 }
 
-export async function removeSiteAction(formData: FormData): Promise<void> {
+/** Toglie un sito: quello aggiunto si cancella, quello dell'app va fra i tolti. */
+export async function removeSiteAction(siteId: string): Promise<SitesState> {
   const viewer = await familyViewerOrNull();
-  if (!viewer) return;
-  const removed = await removeFamilySite(viewer.familyId, String(formData.get("id") ?? ""));
-  if (!removed) return;
-  logEvent("warn", "sito_rimosso", { sito: removed.host, famiglia: viewer.familyId, utente: viewer.id });
-  revalidatePath("/ricette/cosa-cucino");
+  if (!viewer) return { error: EXPIRED };
+  const removed = await removeSearchSite(viewer.familyId, String(siteId));
+  if (removed) {
+    logEvent("warn", "sito_rimosso", {
+      sito: removed.host,
+      tipo: removed.builtIn ? "app" : "famiglia",
+      famiglia: viewer.familyId,
+      utente: viewer.id,
+    });
+  }
+  return { sites: await familySitesOverview(viewer.familyId) };
+}
+
+/** Accende o spegne un sito: spento resta nell'elenco, ma la ricerca non lo usa. */
+export async function setSiteEnabledAction(siteId: string, enabled: boolean): Promise<SitesState> {
+  const viewer = await familyViewerOrNull();
+  if (!viewer) return { error: EXPIRED };
+  const changed = await setSiteEnabled(viewer.familyId, String(siteId), enabled === true);
+  if (changed) {
+    logEvent("warn", enabled === true ? "sito_acceso" : "sito_spento", { sito: changed.host, famiglia: viewer.familyId, utente: viewer.id });
+  }
+  return { sites: await familySitesOverview(viewer.familyId) };
+}
+
+/** Rimette un sito dell'app che la famiglia aveva tolto. */
+export async function restoreSiteAction(siteId: string): Promise<SitesState> {
+  const viewer = await familyViewerOrNull();
+  if (!viewer) return { error: EXPIRED };
+  const restored = await restoreBuiltInSite(viewer.familyId, String(siteId));
+  if (restored) logEvent("warn", "sito_rimesso", { sito: restored.host, famiglia: viewer.familyId, utente: viewer.id });
+  return { sites: await familySitesOverview(viewer.familyId) };
 }
