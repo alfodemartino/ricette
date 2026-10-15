@@ -356,6 +356,46 @@ export function PhotoCredit({ credit, className = "" }: { credit: string; classN
   );
 }
 
+/**
+ * L'interruttore di iOS: verde acceso, grigio spento, manopola bianca che
+ * scorre. È un pulsante con `role="switch"`, così il lettore di schermo dice
+ * «attivato» o «disattivato»; `label` dice che cosa accende.
+ */
+export function Switch({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full p-0.5 transition-colors disabled:opacity-40 motion-reduce:transition-none ${
+        checked ? "bg-positive" : "bg-fill-strong"
+      }`}
+    >
+      {/* Lo spostamento sta in `style` e non in una classe: il nome della
+          classe di Tailwind farebbe scattare il controllo dei colori della
+          tavolozza descritto in CLAUDE.md. */}
+      <span
+        aria-hidden
+        style={{ transform: `translateX(${checked ? 20 : 0}px)` }}
+        className="size-[27px] rounded-full bg-knob shadow-md transition-transform motion-reduce:transition-none"
+      />
+    </button>
+  );
+}
+
 export function Textarea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`${inputClass} min-h-24 ${props.className ?? ""}`} />;
 }

@@ -91,13 +91,16 @@ model VerificationToken {
 /// Le ricette appartengono alla famiglia, non a chi le ha scritte: se un
 /// membro esce, le sue ricette restano a chi rimane.
 model Family {
-  id          String   @id @default(cuid())
-  name        String
-  inviteCode  String   @unique
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  inviteCode    String   @unique
+  createdAt     DateTime @default(now())
   /// I siti dell'app (`BUILT_IN_SITES`, per id) che la famiglia ha tolto da
   /// «Cosa cucino con…». Si rimettono quando si vuole.
-  hiddenSites String[] @default([])
+  hiddenSites   String[] @default([])
+  /// I siti (dell'app o della famiglia, per id) che restano nell'elenco ma
+  /// con l'interruttore spento: la ricerca online non li usa.
+  disabledSites String[] @default([])
 
   members User[]
   recipes Recipe[]

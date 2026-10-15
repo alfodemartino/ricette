@@ -12,7 +12,7 @@ export default function Loading() {
       <Card title="Aggiungi un sito">
         <Skeleton className="h-11 w-full rounded-control" />
       </Card>
-      <Card title="In uso" flush>
+      <Card title="Siti" flush>
         <SkeletonRows count={7} />
       </Card>
     </SkeletonPage>

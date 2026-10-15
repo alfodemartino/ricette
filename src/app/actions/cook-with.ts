@@ -10,6 +10,7 @@ import {
   MAX_FAMILY_SITES,
   removeSearchSite,
   restoreBuiltInSite,
+  setSiteEnabled,
   type SitesOverview,
 } from "@/lib/family-sites";
 import { checkSite } from "@/lib/import/site-check";
@@ -131,6 +132,17 @@ export async function removeSiteAction(siteId: string): Promise<SitesState> {
       famiglia: viewer.familyId,
       utente: viewer.id,
     });
+  }
+  return { sites: await familySitesOverview(viewer.familyId) };
+}
+
+/** Accende o spegne un sito: spento resta nell'elenco, ma la ricerca non lo usa. */
+export async function setSiteEnabledAction(siteId: string, enabled: boolean): Promise<SitesState> {
+  const viewer = await familyViewerOrNull();
+  if (!viewer) return { error: EXPIRED };
+  const changed = await setSiteEnabled(viewer.familyId, String(siteId), enabled === true);
+  if (changed) {
+    logEvent("warn", enabled === true ? "sito_acceso" : "sito_spento", { sito: changed.host, famiglia: viewer.familyId, utente: viewer.id });
   }
   return { sites: await familySitesOverview(viewer.familyId) };
 }

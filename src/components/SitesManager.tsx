@@ -1,52 +1,65 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addSiteAction, removeSiteAction, restoreSiteAction, type SitesState } from "@/app/actions/cook-with";
+import { addSiteAction, removeSiteAction, restoreSiteAction, setSiteEnabledAction, type SitesState } from "@/app/actions/cook-with";
 import { useLoadingWhile } from "@/components/LoadingOverlay";
-import { Alert, buttonClass, Card, Input } from "@/components/ui";
+import { Alert, buttonClass, Card, Input, Switch } from "@/components/ui";
 import type { SiteListItem, SitesOverview } from "@/lib/family-sites";
 
 const dateFormat = new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeZone: "Europe/Rome" });
 
+/**
+ * Una riga dell'elenco. I siti in elenco hanno l'interruttore (`onToggle`):
+ * spento, il sito resta ma la ricerca non lo usa, e il nome si fa grigio.
+ */
 function SiteRow({
   site,
   action,
   label,
   busy,
   onClick,
+  onToggle,
 }: {
   site: SiteListItem;
   action: "danger" | "ghost";
   label: string;
   busy: boolean;
   onClick: () => void;
+  onToggle?: (enabled: boolean) => void;
 }) {
   const detail = site.builtIn
     ? `${site.host} · dell'app`
     : `${site.host} · aggiunto ${site.addedBy ? `da ${site.addedBy} ` : ""}${site.addedAt ? `il ${dateFormat.format(site.addedAt)}` : ""}`;
+  const off = onToggle && !site.enabled;
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-2.5">
       <div className="min-w-0">
-        <p className="truncate text-[15px] font-medium">{site.name}</p>
-        <p className="truncate text-[12px] text-label-secondary">{detail}</p>
+        <p className={`truncate text-[15px] font-medium ${off ? "text-label-secondary" : ""}`}>{site.name}</p>
+        <p className="truncate text-[12px] text-label-secondary">
+          {off ? "Spento · " : ""}
+          {detail}
+        </p>
       </div>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy}
-        aria-label={`${label} ${site.name}`}
-        className={buttonClass(action, "shrink-0", "sm")}
-      >
-        {label}
-      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={busy}
+          aria-label={`${label} ${site.name}`}
+          className={buttonClass(action, "", "sm")}
+        >
+          {label}
+        </button>
+        {onToggle && <Switch checked={site.enabled} onChange={onToggle} label={`Cerca su ${site.name}`} />}
+      </div>
     </li>
   );
 }
 
 /**
  * La gestione dei siti di «Cosa cucino con…»: aggiungerne uno dopo la
- * verifica, togliere quelli in uso (anche quelli dell'app) e rimettere quelli
- * dell'app tolti.
+ * verifica, accendere e spegnere quelli in elenco, toglierli (anche quelli
+ * dell'app) e rimettere quelli dell'app tolti.
  *
  * Ogni azione restituisce l'elenco aggiornato, che si mostra da qui: la pagina
  * non si ricostruisce dopo l'azione, e l'attesa finisce quando arriva la
@@ -77,6 +90,27 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
         // Un sito rifiutato resta scritto, da correggere; uno aggiunto lascia la casella vuota.
         if (!result.error) setUrl("");
       } catch {
+        setMessage({ error: "Qualcosa è andato storto: ricarica la pagina e riprova." });
+      }
+    });
+  }
+
+  /*
+   * L'interruttore si sposta subito, come su iOS, e poi vale l'elenco che
+   * torna dal server. Niente overlay: un interruttore che blocca la pagina
+   * sembrerebbe rotto. Se la richiesta fallisce torna dov'era.
+   */
+  const [, startToggling] = useTransition();
+
+  function setEnabled(id: string, enabled: boolean) {
+    const flip = (value: boolean) =>
+      setSites((current) => ({ ...current, active: current.active.map((site) => (site.id === id ? { ...site, enabled: value } : site)) }));
+    flip(enabled);
+    startToggling(async () => {
+      try {
+        apply(await setSiteEnabledAction(id, enabled));
+      } catch {
+        flip(!enabled);
         setMessage({ error: "Qualcosa è andato storto: ricarica la pagina e riprova." });
       }
     });
@@ -133,7 +167,11 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
         </form>
       </Card>
 
-      <Card title="In uso" description="Dove cerca «Cerca anche online»." flush>
+      <Card
+        title="Siti"
+        description="Con l'interruttore spento «Cerca anche online» salta il sito, che resta qui. «Togli» lo toglie dall'elenco."
+        flush
+      >
         {sites.active.length === 0 ? (
           <p className="px-4 py-6 text-center text-[15px] text-label-secondary">
             Nessun sito: la ricerca online è spenta finché non ne aggiungi o rimetti uno.
@@ -148,6 +186,7 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
                 label="Togli"
                 busy={changing || adding}
                 onClick={() => change(() => removeSiteAction(site.id))}
+                onToggle={(enabled) => setEnabled(site.id, enabled)}
               />
             ))}
           </ul>

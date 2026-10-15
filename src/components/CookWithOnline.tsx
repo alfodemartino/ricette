@@ -205,7 +205,7 @@ export function CookWithOnline({ text, sites, prominent }: { text: string; sites
       {chosen.length === 0 && (
         <p className="px-1 text-[13px] text-label-secondary">
           {sites.length === 0
-            ? "Nessun sito per la ricerca online: aggiungine o rimettine uno in «Gestisci i siti»."
+            ? "Nessun sito acceso per la ricerca online: accendine, aggiungine o rimettine uno in «Gestisci i siti»."
             : "Accendi almeno un sito per cercare."}
         </p>
       )}

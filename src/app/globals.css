@@ -58,6 +58,9 @@
    */
   --ui-scrim: rgb(0 0 0 / 0.5);
   --ui-on-scrim: rgb(255 255 255 / 0.92);
+
+  /* La manopola degli interruttori: bianca nei due temi, come su iOS. */
+  --ui-knob: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -129,6 +132,7 @@ html[data-theme="dark"] {
 
   --color-scrim: var(--ui-scrim);
   --color-on-scrim: var(--ui-on-scrim);
+  --color-knob: var(--ui-knob);
 
 
   /* I due raggi di iOS: i controlli sono più stretti dei riquadri. */

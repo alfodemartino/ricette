@@ -150,9 +150,10 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
     automatica: ricerca leggibile (API di WordPress o `/?s=`), robots.txt
     che non la vieta, almeno due ricette schema.org fra i primi risultati.
     Tavolartegusto, provato così, entra da solo;
-  - ogni sito si toglie per tutta la famiglia, anche quelli dell'app: un
-    sito aggiunto si cancella, uno dell'app va fra i «Tolti»
-    (`Family.hiddenSites`) e si rimette. Le azioni sui siti restituiscono
+  - ogni sito, anche quelli dell'app, si spegne con un interruttore
+    (`Family.disabledSites`: resta in elenco, la ricerca lo salta) o si
+    toglie, per tutta la famiglia: un sito aggiunto si cancella, uno
+    dell'app va fra i «Tolti» (`Family.hiddenSites`) e si rimette. Le azioni sui siti restituiscono
     l'elenco aggiornato e non chiamano `revalidatePath`: con la pagina da
     ricostruire, in produzione l'attesa di «Verifica e aggiungi» non si
     chiudeva più.

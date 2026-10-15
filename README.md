@@ -235,11 +235,13 @@ aggiungere al più 10 siti. Siti con una ricerca fatta a modo loro, come
 GialloZafferano, non si riconoscono da soli: per quelli serve il codice, in
 `BUILT_IN_SITES`.
 
-**Togliere un sito.** Nella stessa pagina ogni sito in uso, anche quelli
-dell'app, ha «Togli», e vale per tutta la famiglia. Un sito aggiunto dalla
-famiglia, tolto, si cancella: per riaverlo lo si aggiunge di nuovo. Un sito
-dell'app finisce fra i «Tolti» (`Family.hiddenSites`), da cui si rimette con
-«Rimetti».
+**Spegnere o togliere un sito.** Nella stessa pagina ogni sito, anche quelli
+dell'app, ha un interruttore e «Togli», e la scelta vale per tutta la
+famiglia. Spento, il sito resta nell'elenco ma la ricerca online lo salta
+(`Family.disabledSites`); si riaccende con lo stesso interruttore. Tolto, un
+sito aggiunto dalla famiglia si cancella (per riaverlo lo si aggiunge di
+nuovo), uno dell'app finisce fra i «Tolti» (`Family.hiddenSites`), da cui si
+rimette con «Rimetti», acceso.
 
 Tutto si scarica con le stesse protezioni dell'import (`safeFetch`): niente
 indirizzi della rete di casa, 10 secondi e 5 MB al massimo per pagina.
@@ -429,6 +431,7 @@ registra una riga JSON solo per questi eventi:
 | `sito_aggiunto` | Un sito aggiunto alla ricerca della famiglia (non è un errore) | `sito`, `tipo`, `famiglia`, `utente` |
 | `sito_rimosso` | Un sito tolto dalla ricerca della famiglia, dell'app o aggiunto (non è un errore) | `sito`, `tipo` (`app` o `famiglia`), `famiglia`, `utente` |
 | `sito_rimesso` | Un sito dell'app rimesso fra quelli in uso (non è un errore) | `sito`, `famiglia`, `utente` |
+| `sito_spento`, `sito_acceso` | L'interruttore di un sito, spento o riacceso (non è un errore) | `sito`, `famiglia`, `utente` |
 | `ricetta_eliminata` | Eliminazione di una ricetta (non è un errore) | `ricetta`, `titolo`, `famiglia`, `utente`, `ip` |
 | `famiglia_eliminata` | Eliminazione di una famiglia (non è un errore) | `famiglia`, `nome`, `ricette`, `utente`, `ip` |
 

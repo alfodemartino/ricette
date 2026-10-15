@@ -109,8 +109,9 @@ sua pagina di risultati scritta a mano in `__fixtures__/` e un test. Tutto
 passa da `safeFetch`, e dai risultati si arriva sempre all'import con il
 controllo dei doppioni: la ricerca non salva niente.
 
-La famiglia toglie qualsiasi sito, anche quelli dell'app
-(`Family.hiddenSites`), e li rimette. Le azioni sui siti restituiscono
+La famiglia spegne qualsiasi sito, anche quelli dell'app
+(`Family.disabledSites`), o lo toglie (`Family.hiddenSites` per quelli
+dell'app), e li riaccende o rimette. Le azioni sui siti restituiscono
 l'elenco aggiornato e non chiamano `revalidatePath`: con la pagina da
 ricostruire dopo l'azione, in produzione l'attesa del pulsante non si
 chiudeva più.
