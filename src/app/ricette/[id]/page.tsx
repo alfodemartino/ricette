@@ -8,6 +8,7 @@ import { DeleteRecipeButton } from "@/components/forms/DeleteRecipeButton";
 import { Badge, Card, MoreIcon, menuItemClass } from "@/components/ui";
 import { categoryLabel } from "@/lib/categories";
 import { formatMinutes, totalMinutes } from "@/lib/duration";
+import { scaleFromAmount } from "@/lib/ingredients";
 import { filtersHref } from "@/lib/recipe-search";
 import { getFamilyRecipe } from "@/lib/recipes";
 import { assertId, requireFamilyViewer } from "@/lib/session";
@@ -16,11 +17,25 @@ import { siteName } from "@/lib/site";
 
 const dateFormat = new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeZone: "Europe/Rome" });
 
-export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function RecipePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const viewer = await requireFamilyViewer();
   const id = assertId((await params).id);
   const recipe = await getFamilyRecipe(id, viewer.familyId);
   if (!recipe) notFound();
+  // Da «Cosa cucino con…»: `?da=<ingrediente>&quantita=300 g` apre la ricetta
+  // ricalcolata su quello che si ha. Se qualcosa non torna si apre com'è.
+  const query = await searchParams;
+  const initialScale = scaleFromAmount(recipe.ingredients, first(query.da), first(query.quantita));
 
   const total = totalMinutes(recipe.prepMinutes, recipe.cookMinutes);
   const facts = [
@@ -31,7 +46,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   ].filter((fact): fact is string[] => fact !== null);
 
   return (
-    <RecipeScale>
+    <RecipeScale initial={initialScale}>
       <article className="space-y-6">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">

@@ -25,7 +25,8 @@ export async function listFamilyRecipes(familyId: string) {
       imageKey: true,
       imageCredit: true,
       sourceKind: true,
-      ingredients: { select: { name: true, note: true } },
+      // Le quantità servono a «Cosa cucino con…», che dice per quante persone basta quello che si ha.
+      ingredients: { orderBy: { position: "asc" }, select: { id: true, name: true, note: true, quantity: true, unit: true } },
       tags: { select: { name: true }, orderBy: { name: "asc" } },
       createdBy: { select: { name: true } },
     },
@@ -76,25 +77,45 @@ export async function listFamilyRecipesToShare(familyId: string, ids: string[]) 
 }
 
 /**
- * Le ricette della famiglia che vengono da uno dei link dati, confrontati con
- * `sourceKey`: la stessa pagina con o senza `www.`, parametri di
+ * Le ricette della famiglia che hanno una fonte, per la chiave del loro link
+ * (`sourceKey`): la stessa pagina con o senza `www.`, parametri di
  * tracciamento o un'altra forma del link YouTube. Di ogni ricetta conta anche
  * la pagina a cui il suo link porta dopo i redirect (`resolvedUrl`), così un
  * link accorciato e quello completo si riconoscono in entrambi i sensi. Le
  * ricette con una fonte sono al più qualche centinaio, e il confronto si fa
  * qui invece che in SQL.
  */
-export async function findFamilyRecipesFromSource(familyId: string, urls: (string | null)[]) {
-  const keys = new Set(urls.map((url) => sourceKey(url ?? "")).filter((key): key is string => key !== null));
-  if (keys.size === 0) return [];
+export type SourceIndex = Map<string, { id: string; title: string }[]>;
+
+export async function familySourceIndex(familyId: string): Promise<SourceIndex> {
   const withSource = await prisma.recipe.findMany({
     where: { familyId, sourceUrl: { not: null } },
     orderBy: { updatedAt: "desc" },
     select: { id: true, title: true, sourceUrl: true, resolvedUrl: true },
   });
-  return withSource
-    .filter((recipe) => [recipe.sourceUrl, recipe.resolvedUrl].some((url) => keys.has(sourceKey(url ?? "") ?? "")))
-    .map(({ id, title }) => ({ id, title }));
+  const index: SourceIndex = new Map();
+  for (const { id, title, sourceUrl, resolvedUrl } of withSource) {
+    for (const key of new Set([sourceUrl, resolvedUrl].map((url) => sourceKey(url ?? "")))) {
+      if (key !== null) index.set(key, [...(index.get(key) ?? []), { id, title }]);
+    }
+  }
+  return index;
+}
+
+/** Le ricette dell'indice che vengono da uno dei link dati, ognuna una volta sola. */
+export function recipesFromSource(index: SourceIndex, urls: (string | null)[]): { id: string; title: string }[] {
+  const found = new Map<string, { id: string; title: string }>();
+  for (const url of urls) {
+    const key = sourceKey(url ?? "");
+    for (const recipe of (key !== null && index.get(key)) || []) found.set(recipe.id, recipe);
+  }
+  return [...found.values()];
+}
+
+/** Le ricette della famiglia che vengono da uno dei link dati (vedi `familySourceIndex`). */
+export async function findFamilyRecipesFromSource(familyId: string, urls: (string | null)[]) {
+  if (urls.every((url) => sourceKey(url ?? "") === null)) return [];
+  return recipesFromSource(await familySourceIndex(familyId), urls);
 }
 
 export async function listFamilyTags(familyId: string) {

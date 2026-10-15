@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { importRecipeAction, type ImportState } from "@/app/actions/import";
 import { RecipeForm } from "@/components/forms/RecipeForm";
 import { RecipeLinks } from "@/components/RecipeLinks";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Alert, Card, Input } from "@/components/ui";
 import type { SaveRecipeState } from "@/app/actions/recipes";
+import { IMPORT_NOW_KEY } from "@/lib/cook-with";
 
 const METHOD_NOTE = {
   "dati-strutturati": "La pagina descrive la ricetta in modo strutturato: dovrebbe essere tutto al suo posto.",
@@ -22,24 +23,41 @@ const METHOD_NOTE = {
 export function ImportFlow({
   saveAction,
   tagSuggestions,
+  initialUrl = "",
 }: {
   saveAction: (state: SaveRecipeState, formData: FormData) => Promise<SaveRecipeState>;
   tagSuggestions: string[];
+  /** Da `?url=`: il link nella casella, pronto da importare. */
+  initialUrl?: string;
 }) {
   const [state, formAction] = useActionState<ImportState, FormData>(importRecipeAction, {});
+  const form = useRef<HTMLFormElement>(null);
+
+  // Da «Importa» di «Cosa cucino con…» si parte subito, senza un secondo
+  // tocco. Vale una volta sola, e solo per il link che quella pagina ha
+  // scritto: un `?url=` arrivato da fuori non scarica niente da sé.
+  useEffect(() => {
+    try {
+      if (!initialUrl || sessionStorage.getItem(IMPORT_NOW_KEY) !== initialUrl) return;
+      sessionStorage.removeItem(IMPORT_NOW_KEY);
+    } catch {
+      return;
+    }
+    form.current?.requestSubmit();
+  }, [initialUrl]);
 
   return (
     <div className="space-y-6">
       <Card title="Link della ricetta" description="Una pagina di ricette, un video YouTube, un post di Instagram, TikTok o Facebook.">
-        <form action={formAction} className="space-y-3">
+        <form ref={form} action={formAction} className="space-y-3">
           {state.error && <Alert tone="error">{state.error}</Alert>}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               name="url"
               type="url"
               inputMode="url"
-              defaultValue={state.url ?? ""}
-              key={state.url ?? "vuoto"}
+              defaultValue={state.url ?? initialUrl}
+              key={state.url ?? (initialUrl || "vuoto")}
               placeholder="https://"
               required
               aria-label="Link della ricetta"

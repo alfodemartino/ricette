@@ -63,6 +63,9 @@ copie notturne.
   basso, in trasparenza, il nome del sito (`ricetteperbimby.it`), finché non
   la si sostituisce con una foto propria.
 - **Import da link** — vedi [più sotto](#import-da-link).
+- **Cosa cucino con…** — si scrivono gli ingredienti che si hanno e l'app
+  trova le ricette che li usano, nel ricettario e, a richiesta, su alcuni
+  siti di ricette. Vedi [più sotto](#cosa-cucino-con).
 - **Aspetto in stile iOS** e **tema chiaro o scuro**, come finanze.
 
 ## Stack
@@ -161,6 +164,11 @@ massimo, le immagini 10 MB.
 
 L'LXC deve poter uscire su internet perché l'import funzioni.
 
+Un link si può anche passare nell'indirizzo, `/ricette/importa?url=<link>`:
+la casella arriva già compilata, ma non si scarica niente finché non si tocca
+«Importa». Parte da solo solo quando si arriva da «Importa» di un risultato di
+[Cosa cucino con…](#cosa-cucino-con).
+
 ### Predisposizione per Claude
 
 L'estrazione con un modello linguistico non c'è ancora, ma la catena è pronta
@@ -177,6 +185,53 @@ Per aggiungerla basterà un `RecipeEnhancer` attivo solo con la chiave
 valorizzata, che riceve `rawText` e restituisce ingredienti e passi. I test in
 `src/lib/import/import.test.ts` verificano già che la catena lo chiami solo
 quando serve.
+
+## Cosa cucino con…
+
+Dall'elenco, «Cosa cucino con quello che ho?» apre `/ricette/cosa-cucino`. Si scrivono
+gli ingredienti separati da virgole, con o senza quantità («300 g zucchine,
+ricotta, menta»), e la pagina mostra le ricette del ricettario in due gruppi:
+**con tutti gli ingredienti** e **ne manca uno**, con scritto quale. Sotto ogni
+ricetta compare cosa serve in più e, se si è scritta una quantità, per quanti
+basta («Basta per circa 3 persone»). Aprendola, la ricetta è già ricalcolata
+su quell'ingrediente. Sale, pepe, olio e acqua si danno per scontati.
+
+Il confronto (`src/lib/cook-with.ts`) è fra parole e non fra testi:
+«zucchina» trova «Zucchine» e «pomodoro» i «Pomodorini», ma «olio» non trova
+le «Olive» e «latte» non trova la «Lattuga».
+
+**Sui siti di ricette.** Sotto i risultati del ricettario, «Cerca anche
+online» cerca sui siti, ognuno per conto suo, così i risultati compaiono man
+mano. Nessun sito cerca davvero per ingrediente: l'app chiede al sito i
+risultati per quelle parole, ne scarica i primi sei e tiene solo le ricette i
+cui dati schema.org contengono davvero quello che si ha. Da un risultato,
+«Importa» apre l'import già avviato: la ricetta si controlla e si salva come
+ogni altra, con l'avviso dei doppioni. Una ricerca scarica qualche decina di
+pagine; risultati e ricette restano in memoria per sei ore.
+
+I siti dell'app, scelti a ottobre 2026 perché hanno i dati schema.org e il
+loro robots.txt non vieta la ricerca, sono GialloZafferano, Ricette della
+Nonna, Fatto in casa da Benedetta, Misya, Il Cucchiaio d'Argento, Casa
+Pappagallo e Ricette per Bimby (`src/lib/import/sites.ts`). Le pastiglie
+sopra il pulsante accendono e spengono i siti; la scelta resta nel browser.
+
+**Siti aggiunti dalla famiglia.** In «Gestisci i siti» (`/ricette/cosa-cucino/siti`)
+chiunque della famiglia incolla l'indirizzo di un sito, e l'app lo prova
+prima di aggiungerlo (`src/lib/import/site-check.ts`):
+
+1. cerca una ricerca che si legge senza JavaScript: l'API di WordPress
+   (`/wp-json/wp/v2/search`) o la ricerca classica `/?s=`;
+2. controlla che il robots.txt del sito non la vieti;
+3. cerca «zucchine» (o «pollo») e verifica che almeno due dei primi risultati
+   siano ricette con i dati schema.org.
+
+Se va tutto bene il sito si salva per la famiglia (tabella `RecipeSite`) e
+compare fra le pastiglie, altrimenti l'app dice perché no. Una famiglia ha al
+più 10 siti. Siti con una ricerca fatta a modo loro, come GialloZafferano, non
+si riconoscono da soli: per quelli serve il codice, in `BUILT_IN_SITES`.
+
+Tutto si scarica con le stesse protezioni dell'import (`safeFetch`): niente
+indirizzi della rete di casa, 10 secondi e 5 MB al massimo per pagina.
 
 ## Deploy sull'LXC di finanze
 
@@ -358,6 +413,10 @@ registra una riga JSON solo per questi eventi:
 | `import_bloccato` | Link verso un indirizzo della rete locale | `url`, `motivo`, `utente` |
 | `import_fallito` | Pagina irraggiungibile, errore del sito, nessuna ricetta | `url`, `motivo`, `utente` |
 | `foto_non_valida` | Foto illeggibile o troppo grande, immagine della fonte non scaricabile | `motivo`, `utente`, a volte `url` |
+| `ricerca_online_fallita` | Un sito di «Cosa cucino con…» non risponde alla ricerca | `sito`, `motivo`, `utente` |
+| `sito_rifiutato` | Un sito proposto dalla famiglia non passa la verifica | `url`, `motivo`, `utente` |
+| `sito_aggiunto` | Un sito aggiunto alla ricerca della famiglia (non è un errore) | `sito`, `tipo`, `famiglia`, `utente` |
+| `sito_rimosso` | Un sito tolto dalla ricerca della famiglia (non è un errore) | `sito`, `famiglia`, `utente` |
 | `ricetta_eliminata` | Eliminazione di una ricetta (non è un errore) | `ricetta`, `titolo`, `famiglia`, `utente`, `ip` |
 | `famiglia_eliminata` | Eliminazione di una famiglia (non è un errore) | `famiglia`, `nome`, `ricette`, `utente`, `ip` |
 
@@ -518,11 +577,13 @@ dump: `sudo ./backup-db.sh`, `docker compose stop app`, nuovo `PG_IMAGE` nel
 ## Come sono organizzati i file
 
 ```
-prisma/schema.prisma          Modello dati (famiglie, ricette, ingredienti, passi, tag)
+prisma/schema.prisma          Modello dati (famiglie, ricette, ingredienti, passi, tag, siti della ricerca)
 prisma/seed.ts                Dati di esempio
 src/lib/ingredients.ts        Lettura delle righe di ingredienti, unità, porzioni e formattazione
 src/lib/recipe-draft.ts       La bozza del form: da import, da database, verso il database
 src/lib/recipe-search.ts      Ricerca e filtri dell'elenco
+src/lib/cook-with.ts          «Cosa cucino con…»: ingredienti scritti, confronto, quanto basta
+src/lib/family-sites.ts       I siti della ricerca online: dell'app e della famiglia
 src/lib/share.ts              La ricetta come messaggio da condividere, e i link per WhatsApp e l'email
 src/lib/clipboard.ts          Copia negli appunti, con il ripiego per l'http della rete di casa
 src/lib/site.ts               Il nome del sito di un link, per la fonte, il tag e la scritta sulla foto
@@ -531,7 +592,8 @@ src/lib/tags.ts               Tag liberi: normalizzazione e doppioni
 src/lib/duration.ts           Tempi: durate ISO 8601 e formattazione
 src/lib/import/               Import da link: indirizzi e sicurezza, download, schema.org,
                               YouTube, anteprime, testo libero, catena degli estrattori,
-                              tag proposti, link che valgono come lo stesso (doppioni)
+                              tag proposti, link che valgono come lo stesso (doppioni),
+                              ricerca sui siti di ricette e verifica dei siti nuovi
 src/lib/photos.ts             Foto: conversione con sharp, salvataggio e lettura
 src/lib/recipes.ts            Accesso alle ricette, sempre filtrato per famiglia
 src/lib/session.ts            Utente e famiglia della richiesta, redirect per le pagine

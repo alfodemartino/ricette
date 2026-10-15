@@ -6,9 +6,16 @@ import { requireFamilyViewer } from "@/lib/session";
 
 export const metadata = { title: "Importa una ricetta — Ricette" };
 
-export default async function ImportRecipePage() {
+export default async function ImportRecipePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const viewer = await requireFamilyViewer();
   const tags = await listFamilyTags(viewer.familyId);
+  // `?url=` mette il link nella casella; da qui non si scarica niente.
+  const url = (await searchParams).url;
+  const initialUrl = (Array.isArray(url) ? url[0] : url)?.trim().slice(0, 2000) ?? "";
 
   return (
     <div className="space-y-6">
@@ -23,7 +30,11 @@ export default async function ImportRecipePage() {
           controllata.
         </p>
       </header>
-      <ImportFlow saveAction={saveRecipeAction.bind(null, null)} tagSuggestions={tags.map((tag) => tag.name)} />
+      <ImportFlow
+        saveAction={saveRecipeAction.bind(null, null)}
+        tagSuggestions={tags.map((tag) => tag.name)}
+        initialUrl={initialUrl}
+      />
     </div>
   );
 }

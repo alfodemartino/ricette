@@ -30,6 +30,11 @@ export type AppEvent =
   | "import_fallito"
   | "import_bloccato"
   | "foto_non_valida"
+  // «Cosa cucino con…»: ricerca sui siti e siti aggiunti dalla famiglia
+  | "ricerca_online_fallita"
+  | "sito_aggiunto"
+  | "sito_rifiutato"
+  | "sito_rimosso"
   // Operazioni irreversibili
   | "ricetta_eliminata"
   | "famiglia_eliminata";

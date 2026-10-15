@@ -95,6 +95,20 @@ I doppioni si riconoscono con `sourceKey` (`src/lib/import/url.ts`), su
 modo nuovo di importare (da testo, da link condiviso) deve passare dallo
 stesso controllo.
 
+## Cosa cucino con…
+
+La ricerca sui siti (`src/lib/import/sites.ts`) scarica i risultati e tiene
+solo le ricette i cui dati schema.org contengono davvero gli ingredienti: i
+siti cercano parole, non ingredienti. Un sito è fatto di dati
+(`RecipeSiteConfig`: dove si cerca, dove stanno i link), sia quelli dell'app
+in `BUILT_IN_SITES` sia quelli che una famiglia aggiunge (tabella
+`RecipeSite`, sempre filtrata per `familyId`) dopo la verifica di
+`src/lib/import/site-check.ts`. Un sito dell'app si aggiunge solo se ha i
+dati schema.org e il suo robots.txt non vieta la ricerca che si usa, con la
+sua pagina di risultati scritta a mano in `__fixtures__/` e un test. Tutto
+passa da `safeFetch`, e dai risultati si arriva sempre all'import con il
+controllo dei doppioni: la ricerca non salva niente.
+
 ## Interfaccia
 
 Valgono le regole di finanze. Tailwind v4 senza file di configurazione, temi
