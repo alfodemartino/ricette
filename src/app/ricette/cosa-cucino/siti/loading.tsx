@@ -1,7 +1,7 @@
 import { SkeletonPage, SkeletonRows } from "@/components/Skeletons";
 import { Card, Skeleton } from "@/components/ui";
 
-/** I siti mentre arrivano: titoli e casella veri, elenchi grigi. */
+/** I siti mentre arrivano: titoli e casella veri, elenco grigio. */
 export default function Loading() {
   return (
     <SkeletonPage className="space-y-6">
@@ -12,10 +12,7 @@ export default function Loading() {
       <Card title="Aggiungi un sito">
         <Skeleton className="h-11 w-full rounded-control" />
       </Card>
-      <Card title="Aggiunti dalla famiglia" flush>
-        <SkeletonRows count={1} />
-      </Card>
-      <Card title="Dell'app" flush>
+      <Card title="In uso" flush>
         <SkeletonRows count={7} />
       </Card>
     </SkeletonPage>

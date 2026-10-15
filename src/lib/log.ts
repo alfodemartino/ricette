@@ -35,6 +35,7 @@ export type AppEvent =
   | "sito_aggiunto"
   | "sito_rifiutato"
   | "sito_rimosso"
+  | "sito_rimesso"
   // Operazioni irreversibili
   | "ricetta_eliminata"
   | "famiglia_eliminata";

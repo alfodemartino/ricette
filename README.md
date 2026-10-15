@@ -216,7 +216,8 @@ I siti dell'app, scelti a ottobre 2026 perché hanno i dati schema.org e il
 loro robots.txt non vieta la ricerca, sono GialloZafferano, Ricette della
 Nonna, Fatto in casa da Benedetta, Misya, Il Cucchiaio d'Argento, Casa
 Pappagallo e Ricette per Bimby (`src/lib/import/sites.ts`). Le pastiglie
-sopra il pulsante accendono e spengono i siti; la scelta resta nel browser.
+sopra il pulsante accendono e spengono i siti per una ricerca; la scelta resta
+nel browser. Per non usare più un sito si toglie (vedi sotto).
 
 **Siti aggiunti dalla famiglia.** In «Gestisci i siti» (`/ricette/cosa-cucino/siti`)
 chiunque della famiglia incolla l'indirizzo di un sito, e l'app lo prova
@@ -229,9 +230,16 @@ prima di aggiungerlo (`src/lib/import/site-check.ts`):
    siano ricette con i dati schema.org.
 
 Se va tutto bene il sito si salva per la famiglia (tabella `RecipeSite`) e
-compare fra le pastiglie, altrimenti l'app dice perché no. Una famiglia ha al
-più 10 siti. Siti con una ricerca fatta a modo loro, come GialloZafferano, non
-si riconoscono da soli: per quelli serve il codice, in `BUILT_IN_SITES`.
+compare fra le pastiglie, altrimenti l'app dice perché no. Una famiglia può
+aggiungere al più 10 siti. Siti con una ricerca fatta a modo loro, come
+GialloZafferano, non si riconoscono da soli: per quelli serve il codice, in
+`BUILT_IN_SITES`.
+
+**Togliere un sito.** Nella stessa pagina ogni sito in uso, anche quelli
+dell'app, ha «Togli», e vale per tutta la famiglia. Un sito aggiunto dalla
+famiglia, tolto, si cancella: per riaverlo lo si aggiunge di nuovo. Un sito
+dell'app finisce fra i «Tolti» (`Family.hiddenSites`), da cui si rimette con
+«Rimetti».
 
 Tutto si scarica con le stesse protezioni dell'import (`safeFetch`): niente
 indirizzi della rete di casa, 10 secondi e 5 MB al massimo per pagina.
@@ -419,7 +427,8 @@ registra una riga JSON solo per questi eventi:
 | `ricerca_online_fallita` | Un sito di «Cosa cucino con…» non risponde alla ricerca | `sito`, `motivo`, `utente` |
 | `sito_rifiutato` | Un sito proposto dalla famiglia non passa la verifica | `url`, `motivo`, `utente` |
 | `sito_aggiunto` | Un sito aggiunto alla ricerca della famiglia (non è un errore) | `sito`, `tipo`, `famiglia`, `utente` |
-| `sito_rimosso` | Un sito tolto dalla ricerca della famiglia (non è un errore) | `sito`, `famiglia`, `utente` |
+| `sito_rimosso` | Un sito tolto dalla ricerca della famiglia, dell'app o aggiunto (non è un errore) | `sito`, `tipo` (`app` o `famiglia`), `famiglia`, `utente` |
+| `sito_rimesso` | Un sito dell'app rimesso fra quelli in uso (non è un errore) | `sito`, `famiglia`, `utente` |
 | `ricetta_eliminata` | Eliminazione di una ricetta (non è un errore) | `ricetta`, `titolo`, `famiglia`, `utente`, `ip` |
 | `famiglia_eliminata` | Eliminazione di una famiglia (non è un errore) | `famiglia`, `nome`, `ricette`, `utente`, `ip` |
 

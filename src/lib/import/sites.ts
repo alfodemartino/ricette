@@ -91,6 +91,19 @@ export const BUILT_IN_SITES: RecipeSiteConfig[] = [
   html("ricetteperbimby", "Ricette per Bimby", "www.ricetteperbimby.it", "https://www.ricetteperbimby.it/ricerca/{q-}", "section.content article.post a", "/ricette/"),
 ];
 
+/**
+ * I siti dell'app divisi fra quelli in uso e quelli che la famiglia ha tolto
+ * (`hidden`, per id), nell'ordine di `BUILT_IN_SITES`. Gli id che non
+ * corrispondono più a un sito si ignorano.
+ */
+export function splitBuiltInSites(hidden: string[]): { active: RecipeSiteConfig[]; removed: RecipeSiteConfig[] } {
+  const off = new Set(hidden);
+  return {
+    active: BUILT_IN_SITES.filter((site) => !off.has(site.id)),
+    removed: BUILT_IN_SITES.filter((site) => off.has(site.id)),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Indirizzi e link
 // ---------------------------------------------------------------------------

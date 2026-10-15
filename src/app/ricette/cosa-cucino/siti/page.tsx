@@ -1,24 +1,18 @@
-import { removeSiteAction } from "@/app/actions/cook-with";
-import { AddSiteForm } from "@/components/forms/AddSiteForm";
 import { NavLink } from "@/components/NavLink";
-import { SubmitButton } from "@/components/SubmitButton";
-import { Card } from "@/components/ui";
-import { listFamilySites, MAX_FAMILY_SITES } from "@/lib/family-sites";
-import { BUILT_IN_SITES } from "@/lib/import/sites";
+import { SitesManager } from "@/components/SitesManager";
+import { familySitesOverview, MAX_FAMILY_SITES } from "@/lib/family-sites";
 import { requireFamilyViewer } from "@/lib/session";
 
 export const metadata = { title: "Siti per la ricerca — Ricette" };
 
-const dateFormat = new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeZone: "Europe/Rome" });
-
 /**
- * I siti in cui «Cosa cucino con…» cerca: quelli dell'app, fissi, e quelli
- * che la famiglia ha aggiunto, che chiunque della famiglia può togliere.
+ * I siti in cui «Cosa cucino con…» cerca: quelli dell'app e quelli che la
+ * famiglia ha aggiunto. Chiunque della famiglia ne aggiunge, ne toglie e
+ * rimette quelli dell'app.
  */
 export default async function SitesPage() {
   const viewer = await requireFamilyViewer();
-  const sites = await listFamilySites(viewer.familyId);
-  const full = sites.length >= MAX_FAMILY_SITES;
+  const sites = await familySitesOverview(viewer.familyId);
 
   return (
     <div className="space-y-6">
@@ -33,48 +27,7 @@ export default async function SitesPage() {
         </p>
       </header>
 
-      <Card
-        title="Aggiungi un sito"
-        description={full ? `La famiglia ha già ${MAX_FAMILY_SITES} siti: per aggiungerne un altro togline uno.` : "Di solito vanno bene i siti fatti con WordPress."}
-      >
-        <AddSiteForm disabled={full} />
-      </Card>
-
-      <Card title="Aggiunti dalla famiglia" flush>
-        {sites.length === 0 ? (
-          <p className="px-4 py-6 text-center text-[15px] text-label-secondary">Ancora nessuno.</p>
-        ) : (
-          <ul className="divide-y divide-separator">
-            {sites.map((site) => (
-              <li key={site.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-medium">{site.name}</p>
-                  <p className="truncate text-[12px] text-label-secondary">
-                    {site.host} · aggiunto {site.createdBy ? `da ${site.createdBy} ` : ""}il {dateFormat.format(site.createdAt)}
-                  </p>
-                </div>
-                <form action={removeSiteAction}>
-                  <input type="hidden" name="id" value={site.id} />
-                  <SubmitButton variant="danger" size="sm" pendingLabel="Tolgo…">
-                    Togli
-                  </SubmitButton>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card title="Dell'app" flush>
-        <ul className="divide-y divide-separator">
-          {BUILT_IN_SITES.map((site) => (
-            <li key={site.id} className="px-4 py-2.5">
-              <p className="text-[15px] font-medium">{site.name}</p>
-              <p className="text-[12px] text-label-secondary">{site.host}</p>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <SitesManager initial={sites} maxFamilySites={MAX_FAMILY_SITES} />
     </div>
   );
 }
