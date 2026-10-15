@@ -60,14 +60,25 @@ export function RecipePhoto({
  *
  * L'icona di condivisione sta accanto al link, non dentro: un pulsante dentro
  * un link non è HTML valido. Il testo le lascia il suo spazio a destra.
+ *
+ * `href` e `children` servono a «Cosa cucino con…»: la ricetta si apre già
+ * ricalcolata, e sotto i dati compare cosa manca e per quanti basta.
  */
-export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
+export function RecipeCard({
+  recipe,
+  href,
+  children,
+}: {
+  recipe: RecipeCardData;
+  href?: string;
+  children?: React.ReactNode;
+}) {
   const total = formatMinutes(totalMinutes(recipe.prepMinutes, recipe.cookMinutes));
   return (
     <li>
       <SelectableRecipe id={recipe.id} title={recipe.title}>
         <NavLink
-          href={`/ricette/${recipe.id}`}
+          href={href ?? `/ricette/${recipe.id}`}
           className="group flex h-full items-center gap-3 overflow-hidden rounded-card bg-surface p-2.5 transition active:scale-[0.99] motion-reduce:active:scale-100 sm:block sm:p-0"
         >
           <RecipePhoto
@@ -89,6 +100,7 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
                 <Badge key={tag.name}>#{tag.name}</Badge>
               ))}
             </div>
+            {children}
           </div>
         </NavLink>
         <ShareRecipeCardButton

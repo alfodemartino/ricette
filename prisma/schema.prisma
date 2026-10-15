@@ -38,8 +38,9 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  recipesCreated Recipe[] @relation("RecipeCreatedBy")
-  recipesUpdated Recipe[] @relation("RecipeUpdatedBy")
+  recipesCreated Recipe[]     @relation("RecipeCreatedBy")
+  recipesUpdated Recipe[]     @relation("RecipeUpdatedBy")
+  sitesAdded     RecipeSite[]
 
   @@index([familyId])
 }
@@ -98,6 +99,7 @@ model Family {
   members User[]
   recipes Recipe[]
   tags    Tag[]
+  sites   RecipeSite[]
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +203,7 @@ model RecipeStep {
 /// Etichetta libera della famiglia («vegetariano», «veloce»). `key` è il nome
 /// normalizzato: «Veloce» e «veloce» sono lo stesso tag.
 model Tag {
-  id       String   @id @default(cuid())
+  id       String @id @default(cuid())
   familyId String
   name     String
   key      String
@@ -210,4 +212,41 @@ model Tag {
   recipes Recipe[]
 
   @@unique([familyId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Siti per «Cosa cucino con…»
+// ---------------------------------------------------------------------------
+
+/// Come si leggono i risultati della ricerca di un sito: dall'API di
+/// WordPress (un JSON con i link) o dai link dentro la pagina dei risultati.
+enum RecipeSiteKind {
+  WORDPRESS
+  HTML
+}
+
+/// Un sito di ricette aggiunto dalla famiglia, oltre a quelli dell'app
+/// (`src/lib/import/sites.ts`). Entra solo dopo la verifica di
+/// `src/lib/import/site-check.ts`: robots.txt, ricerca leggibile e ricette
+/// con i dati schema.org.
+model RecipeSite {
+  id           String         @id @default(cuid())
+  familyId     String
+  /// `www.misya.info`: un sito una volta sola per famiglia.
+  host         String
+  name         String
+  kind         RecipeSiteKind
+  /// L'indirizzo della ricerca, con `{q}` al posto delle parole cercate.
+  searchUrl    String
+  /// Dove stanno i link dei risultati nella pagina (solo `HTML`).
+  linkSelector String?
+  /// Il pezzo iniziale del percorso delle ricette («/ricetta/»), se ce n'è uno.
+  linkPrefix   String?
+  createdById  String?
+  createdAt    DateTime       @default(now())
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([familyId, host])
 }

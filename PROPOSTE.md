@@ -105,8 +105,8 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
 9. **Storico delle modifiche** e **avviso di modifica contemporanea**
    (confronto di `updatedAt` al salvataggio).
 10. Più avanti: ricette collegate (ragù, besciamella, frolla), più foto per
-    ricetta, «cosa cucino con…», esportazione completa (JSON schema.org e
-    foto), conversione delle unità americane.
+    ricetta, esportazione completa (JSON schema.org e foto), conversione
+    delle unità americane.
 
 ### Realizzate
 
@@ -126,6 +126,30 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
   gruppo (patate segnate «1 kg», pesate «600 g»): accanto alla casella c'è la
   scelta fra grammi e chili, o millilitri e litri, e vale anche l'unità
   scritta nella casella.
+- **Cosa cucino con…** (ottobre 2026): `/ricette/cosa-cucino` trova le ricette a
+  partire dagli ingredienti che si hanno. Le decisioni prese:
+  - prima le ricette con tutti gli ingredienti scritti, poi quelle a cui ne
+    manca uno, con scritto quale; sale, pepe, olio e acqua non contano;
+  - il confronto è fra radici di parole (`src/lib/cook-with.ts`):
+    singolare e plurale, diminutivi, senza gli aggettivi più comuni; niente
+    sinonimi (grana e parmigiano restano diversi);
+  - le quantità servono a ricalcolare: «basta per circa N persone» (oltre 12
+    porzioni sono pezzi, e si parla di «metà ricetta»), e la ricetta si apre
+    già ricalcolata con `?da=<ingrediente>&quantita=300 g`;
+  - la ricerca sui siti parte solo con un pulsante, un sito alla volta;
+    «Importa» porta all'import già avviato, con l'avviso dei doppioni.
+    `/ricette/importa?url=` da fuori invece precompila soltanto, come
+    previsto per il comando rapido di iOS;
+  - i siti dell'app, verificati a mano: GialloZafferano (la ricerca nel
+    percorso è permessa, quella con `?` no), Ricette della Nonna, Fatto in
+    casa da Benedetta e Misya (API di WordPress; i loro robots.txt vietano
+    `/?s=` o `/search/`, non l'API), Il Cucchiaio d'Argento, Casa Pappagallo,
+    Ricette per Bimby. Scartati: Cookist e Sale&Pepe (API chiusa, ricerca
+    vietata), La Cucina Italiana (ricerca vietata, programmi respinti);
+  - ogni famiglia può aggiungere fino a 10 siti dall'app, dopo una verifica
+    automatica: ricerca leggibile (API di WordPress o `/?s=`), robots.txt
+    che non la vieta, almeno due ricette schema.org fra i primi risultati.
+    Tavolartegusto, provato così, entra da solo.
 
 ### Accantonate
 
@@ -213,7 +237,8 @@ spariscono.
   (`SegmentedLinks`, `?da=testo`).
 - `?url=…` e `?text=…` precompilano i campi senza scaricare niente finché
   non si tocca il pulsante: servono al comando rapido di iOS e al segnalibro
-  sul computer.
+  sul computer. `?url=` c'è già (arrivato con «Cosa cucino con…»): manca
+  `?text=`.
 - Se la sessione è scaduta, `/login?da=<percorso>` riporta all'import dopo
   l'accesso; il percorso si accetta solo se interno (`/…`, mai `//…`).
 

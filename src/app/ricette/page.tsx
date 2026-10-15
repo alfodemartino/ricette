@@ -77,6 +77,11 @@ export default async function RecipesPage({
           <>
             <div className="space-y-3">
               <RecipeSearch filters={filters} />
+              <p className="px-1 text-[13px]">
+                <NavLink href="/ricette/cosa-cucino" className="font-medium text-tint hover:underline">
+                  Cosa cucino con quello che ho? ›
+                </NavLink>
+              </p>
 
               {/* Le pastiglie scorrono in orizzontale sul telefono invece di
                   andare a capo in cinque righe. */}

@@ -15,6 +15,7 @@ import {
   parseQuantity,
   peopleFor,
   quantityInput,
+  scaleFromAmount,
   scaleQuantity,
   stepPeople,
   unitLabel,
@@ -238,5 +239,33 @@ describe("formatQuantity", () => {
     expect(quantityInput(1.5)).toBe("1,5");
     expect(quantityInput(200)).toBe("200");
     expect(quantityInput(null)).toBe("");
+  });
+});
+
+describe("scaleFromAmount", () => {
+  const ingredients = [
+    { id: "patate", quantity: 1, unit: "kg" },
+    { id: "uova", quantity: 2, unit: null },
+    { id: "sale", quantity: null, unit: null },
+  ];
+
+  it("parte dalla quantità scritta, anche in un'altra unità", () => {
+    expect(scaleFromAmount(ingredients, "patate", "600 g")).toEqual({
+      factor: 0.6,
+      anchor: { id: "patate", quantity: 600, unit: "g" },
+    });
+  });
+
+  it("senza unità usa quella dell'ingrediente", () => {
+    expect(scaleFromAmount(ingredients, "uova", "3")).toEqual({ factor: 1.5, anchor: { id: "uova", quantity: 3, unit: null } });
+  });
+
+  it("lascia la ricetta com'è quando qualcosa non torna", () => {
+    expect(scaleFromAmount(ingredients, "altro", "600 g")).toBeNull();
+    expect(scaleFromAmount(ingredients, "patate", "tanto")).toBeNull();
+    expect(scaleFromAmount(ingredients, "patate", "3 cucchiai")).toBeNull();
+    expect(scaleFromAmount(ingredients, "sale", "1 g")).toBeNull();
+    expect(scaleFromAmount(ingredients, "patate", "1 kg")).toBeNull();
+    expect(scaleFromAmount(ingredients, null, null)).toBeNull();
   });
 });

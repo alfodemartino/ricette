@@ -395,6 +395,27 @@ export function factorForAmount(
   return factorForQuantity(original, convertQuantity(wanted, wantedUnit, originalUnit));
 }
 
+/**
+ * Il ricalcolo con cui si apre una ricetta quando si arriva da «Cosa cucino
+ * con…» (`?da=<ingrediente>&quantita=300 g`): il fattore, e l'ingrediente da
+ * cui si parte con la quantità scritta. Senza unità vale quella
+ * dell'ingrediente, come nella casella della pagina. `null` se l'ingrediente
+ * non c'è o la quantità non va: la ricetta si apre com'è.
+ */
+export function scaleFromAmount(
+  ingredients: { id: string; quantity: number | null; unit: string | null }[],
+  id: string | null | undefined,
+  raw: string | null | undefined,
+): { factor: number; anchor: { id: string; quantity: number; unit: string | null } } | null {
+  const ingredient = id ? ingredients.find((item) => item.id === id) : undefined;
+  const amount = parseAmount(raw);
+  if (!ingredient || !amount) return null;
+  const unit = amount.unit ?? ingredient.unit;
+  const factor = factorForAmount(ingredient.quantity, ingredient.unit, amount.quantity, unit);
+  if (factor === null || isOriginalScale(factor)) return null;
+  return { factor, anchor: { id: ingredient.id, quantity: amount.quantity, unit } };
+}
+
 /** Il fattore che porta un ingrediente da `original` a `wanted`; `null` se non si può. */
 export function factorForQuantity(original: number | null, wanted: number | null): number | null {
   if (original === null || wanted === null || !(original > 0) || !(wanted > 0)) return null;

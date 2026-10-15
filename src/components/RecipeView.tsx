@@ -65,8 +65,10 @@ const ORIGINAL: Scale = { factor: 1, anchor: null };
  */
 const ScaleContext = createContext<[Scale, Dispatch<SetStateAction<Scale>>] | null>(null);
 
-export function RecipeScale({ children }: { children: ReactNode }) {
-  const scale = useState(ORIGINAL);
+export function RecipeScale({ initial = ORIGINAL, children }: { initial?: Scale | null; children: ReactNode }) {
+  // `initial` arriva da «Cosa cucino con…»: la ricetta si apre già ricalcolata
+  // sulla quantità che si ha.
+  const scale = useState(initial ?? ORIGINAL);
   return <ScaleContext.Provider value={scale}>{children}</ScaleContext.Provider>;
 }
 
