@@ -1,15 +1,7 @@
 import * as cheerio from "cheerio";
 import { decodeBody, safeFetch, type Fetcher } from "@/lib/import/fetch-page";
 import { robotsAllows } from "@/lib/import/robots";
-import {
-  BUILT_IN_SITES,
-  fetchSiteRecipe,
-  mapLimit,
-  resultLinks,
-  sameSite,
-  searchUrlFor,
-  type RecipeSiteConfig,
-} from "@/lib/import/sites";
+import { fetchSiteRecipe, mapLimit, resultLinks, searchUrlFor, type RecipeSiteConfig } from "@/lib/import/sites";
 import { ImportError, parseImportUrl } from "@/lib/import/url";
 import { siteName } from "@/lib/site";
 
@@ -23,14 +15,14 @@ import { siteName } from "@/lib/site";
  *  3. cercando una parola comune, almeno due dei primi risultati sono ricette
  *     con i dati schema.org (`recipeIngredient`).
  *
- * Da qui esce la descrizione del sito, con gli stessi campi dei siti
- * dell'app: dove si cerca, dove stanno i link e, se le ricette hanno un
+ * Da qui esce la descrizione del sito, con gli stessi campi dei siti già
+ * provati: dove si cerca, dove stanno i link e, se le ricette hanno un
  * percorso comune («/ricetta/»), quale. Siti con una ricerca fatta a modo loro
- * (GialloZafferano, il Cucchiaio) non si riconoscono da soli: per quelli
- * resta il codice, in `BUILT_IN_SITES`.
+ * (GialloZafferano, il Cucchiaio) non si riconoscono da soli: per quelli c'è
+ * il catalogo `KNOWN_SITES`, che l'azione guarda prima di arrivare qui.
  */
 
-export type CheckedSite = Omit<RecipeSiteConfig, "id" | "builtIn">;
+export type CheckedSite = Omit<RecipeSiteConfig, "id">;
 
 export type SiteCheck =
   | { ok: true; site: CheckedSite; samples: string[] }
@@ -96,11 +88,6 @@ export async function checkSite(raw: string, options: { fetcher?: Fetcher } = {}
   }
   const origin = start.origin;
   const host = start.hostname.toLowerCase();
-
-  const builtIn = BUILT_IN_SITES.find((site) => sameSite(site.host, host));
-  if (builtIn) {
-    return { ok: false, reason: "gia_presente", message: `${builtIn.name} è già fra i siti dell'app.` };
-  }
 
   try {
     let home: string;

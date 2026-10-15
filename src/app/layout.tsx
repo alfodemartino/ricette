@@ -74,6 +74,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       <NavLink href="/famiglia" className={`${menuItemClass} border-b border-separator`}>
                         La mia famiglia
                       </NavLink>
+                      <NavLink href="/ricette/cosa-cucino/siti" className={`${menuItemClass} border-b border-separator`}>
+                        Siti per la ricerca
+                      </NavLink>
                       <div className="flex items-center justify-between gap-3 border-b border-separator px-4 py-2.5 text-[15px]">
                         Tema
                         <ThemeToggle />

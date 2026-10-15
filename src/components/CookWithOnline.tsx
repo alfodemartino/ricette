@@ -14,7 +14,7 @@ import { formatMinutes } from "@/lib/duration";
 /** I siti spenti, ricordati nel browser: è una comodità di chi cerca, non un dato della famiglia. */
 const OFF_KEY = "ricette.siti-spenti";
 
-type Site = { id: string; name: string; builtIn: boolean };
+type Site = { id: string; name: string };
 type SiteState = "loading" | SiteSearchState;
 
 function readOff(): string[] {
@@ -205,7 +205,7 @@ export function CookWithOnline({ text, sites, prominent }: { text: string; sites
       {chosen.length === 0 && (
         <p className="px-1 text-[13px] text-label-secondary">
           {sites.length === 0
-            ? "Nessun sito acceso per la ricerca online: accendine, aggiungine o rimettine uno in «Gestisci i siti»."
+            ? "Nessun sito acceso per la ricerca online: aggiungine o accendine uno in «Gestisci i siti»."
             : "Accendi almeno un sito per cercare."}
         </p>
       )}

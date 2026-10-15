@@ -140,23 +140,27 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
     «Importa» porta all'import già avviato, con l'avviso dei doppioni.
     `/ricette/importa?url=` da fuori invece precompila soltanto, come
     previsto per il comando rapido di iOS;
-  - i siti dell'app, verificati a mano: GialloZafferano (la ricerca nel
+  - i siti già provati, verificati a mano: GialloZafferano (la ricerca nel
     percorso è permessa, quella con `?` no), Ricette della Nonna, Fatto in
     casa da Benedetta e Misya (API di WordPress; i loro robots.txt vietano
     `/?s=` o `/search/`, non l'API), Il Cucchiaio d'Argento, Casa Pappagallo,
     Ricette per Bimby. Scartati: Cookist e Sale&Pepe (API chiusa, ricerca
     vietata), La Cucina Italiana (ricerca vietata, programmi respinti);
-  - ogni famiglia può aggiungere fino a 10 siti dall'app, dopo una verifica
+  - nessun sito predefinito: i siti sono tutti della famiglia
+    (`RecipeSite`), che parte senza. I sette già provati (`KNOWN_SITES`) si
+    propongono e si aggiungono con un tocco, o scrivendone l'indirizzo; la
+    loro configurazione si legge sempre dal catalogo (`catalogId`). Le
+    famiglie che c'erano prima hanno tenuto i siti che usavano;
+  - ogni famiglia ha fino a 15 siti. Quelli nuovi passano da una verifica
     automatica: ricerca leggibile (API di WordPress o `/?s=`), robots.txt
     che non la vieta, almeno due ricette schema.org fra i primi risultati.
     Tavolartegusto, provato così, entra da solo;
-  - ogni sito, anche quelli dell'app, si spegne con un interruttore
-    (`Family.disabledSites`: resta in elenco, la ricerca lo salta) o si
-    toglie, per tutta la famiglia: un sito aggiunto si cancella, uno
-    dell'app va fra i «Tolti» (`Family.hiddenSites`) e si rimette. Le azioni sui siti restituiscono
-    l'elenco aggiornato e non chiamano `revalidatePath`: con la pagina da
-    ricostruire, in produzione l'attesa di «Verifica e aggiungi» non si
-    chiudeva più.
+  - ogni sito si spegne con un interruttore (`RecipeSite.enabled`: resta in
+    elenco, la ricerca lo salta) o si toglie, per tutta la famiglia. La
+    pagina dei siti si apre dal menu dell'account. Le azioni sui siti
+    restituiscono l'elenco aggiornato e non chiamano `revalidatePath`: con la
+    pagina da ricostruire, in produzione l'attesa di «Verifica e aggiungi»
+    non si chiudeva più.
 
 ### Accantonate
 

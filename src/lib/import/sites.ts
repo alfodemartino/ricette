@@ -24,7 +24,7 @@ import { parseIngredientLine } from "@/lib/ingredients";
  *
  * Un sito è fatto di dati, non di codice: dove si cerca (`searchUrl`, con
  * `{q}` al posto delle parole) e dove stanno i link dei risultati. Così gli
- * stessi campi descrivono i siti dell'app, qui sotto, e quelli che una
+ * stessi campi descrivono i siti già provati, qui sotto, e quelli che una
  * famiglia aggiunge dopo la verifica di `site-check.ts`.
  *
  * Tutto si scarica con `safeFetch`: le parole cercate le ha scritte l'utente,
@@ -32,7 +32,7 @@ import { parseIngredientLine } from "@/lib/ingredients";
  */
 
 export type RecipeSiteConfig = {
-  /** Il nome per i siti dell'app («giallozafferano»), l'id del database per gli altri. */
+  /** L'id nel catalogo per i siti già provati («giallozafferano»), quello del database per i siti della famiglia. */
   id: string;
   name: string;
   host: string;
@@ -47,7 +47,6 @@ export type RecipeSiteConfig = {
   linkSelector: string | null;
   /** Il pezzo iniziale del percorso delle ricette («/ricetta/»), se ce n'è uno. */
   linkPrefix: string | null;
-  builtIn: boolean;
 };
 
 function wordpress(id: string, name: string, host: string, linkPrefix: string | null): RecipeSiteConfig {
@@ -59,20 +58,24 @@ function wordpress(id: string, name: string, host: string, linkPrefix: string | 
     searchUrl: `https://${host}/wp-json/wp/v2/search?search={q}&per_page=10&type=post`,
     linkSelector: null,
     linkPrefix,
-    builtIn: true,
   };
 }
 
 function html(id: string, name: string, host: string, searchUrl: string, linkSelector: string, linkPrefix: string | null): RecipeSiteConfig {
-  return { id, name, host, kind: "HTML", searchUrl, linkSelector, linkPrefix, builtIn: true };
+  return { id, name, host, kind: "HTML", searchUrl, linkSelector, linkPrefix };
 }
 
 /**
- * I siti dell'app, verificati a mano a ottobre 2026: tutti hanno i dati
+ * I siti già provati, verificati a mano a ottobre 2026: tutti hanno i dati
  * schema.org e una ricerca che il loro robots.txt non vieta. Le scelte e i
  * siti scartati sono in PROPOSTE.md.
+ *
+ * Non sono predefiniti: ogni famiglia parte senza siti e questi le vengono
+ * proposti, da aggiungere con un tocco. Quattro hanno una ricerca fatta a
+ * modo loro, che la verifica automatica non riconoscerebbe: scrivendone
+ * l'indirizzo, vale la configurazione di qui.
  */
-export const BUILT_IN_SITES: RecipeSiteConfig[] = [
+export const KNOWN_SITES: RecipeSiteConfig[] = [
   html(
     "giallozafferano",
     "GialloZafferano",
@@ -91,19 +94,6 @@ export const BUILT_IN_SITES: RecipeSiteConfig[] = [
   html("ricetteperbimby", "Ricette per Bimby", "www.ricetteperbimby.it", "https://www.ricetteperbimby.it/ricerca/{q-}", "section.content article.post a", "/ricette/"),
 ];
 
-/**
- * I siti dell'app divisi fra quelli in uso e quelli che la famiglia ha tolto
- * (`hidden`, per id), nell'ordine di `BUILT_IN_SITES`. Gli id che non
- * corrispondono più a un sito si ignorano.
- */
-export function splitBuiltInSites(hidden: string[]): { active: RecipeSiteConfig[]; removed: RecipeSiteConfig[] } {
-  const off = new Set(hidden);
-  return {
-    active: BUILT_IN_SITES.filter((site) => !off.has(site.id)),
-    removed: BUILT_IN_SITES.filter((site) => off.has(site.id)),
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Indirizzi e link
 // ---------------------------------------------------------------------------
@@ -115,8 +105,23 @@ function baseHost(host: string): string {
 
 /** Se due nomi sono lo stesso sito, sottodomini compresi. */
 export function sameSite(a: string, b: string): boolean {
+  if (!a || !b) return false;
   const [x, y] = [baseHost(a), baseHost(b)];
   return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`);
+}
+
+/** Il sito già provato che sta a questo indirizzo, se c'è. */
+export function findKnownSite(host: string): RecipeSiteConfig | null {
+  return KNOWN_SITES.find((site) => sameSite(site.host, host)) ?? null;
+}
+
+/**
+ * I siti già provati che la famiglia non ha ancora: quelli da proporre.
+ * `present` sono i siti che ha, con il loro indirizzo e, se vengono dal
+ * catalogo, il suo id.
+ */
+export function knownSitesToSuggest(present: { host: string; catalogId: string | null }[]): RecipeSiteConfig[] {
+  return KNOWN_SITES.filter((site) => !present.some((entry) => entry.catalogId === site.id || sameSite(entry.host, site.host)));
 }
 
 /** L'indirizzo della ricerca per queste parole. */

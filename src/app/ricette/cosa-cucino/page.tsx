@@ -135,7 +135,7 @@ export default async function CookWithPage({
           <CookWithOnline
             key={text}
             text={text}
-            sites={sites.map(({ id, name, builtIn }) => ({ id, name, builtIn }))}
+            sites={sites.map(({ id, name }) => ({ id, name }))}
             prominent={ranked.all.length === 0}
           />
         </>
