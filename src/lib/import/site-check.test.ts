@@ -89,16 +89,6 @@ describe("checkSite", () => {
     expect(await checkSite("https://www.blogdiprova.it", { fetcher })).toMatchObject({ ok: false, reason: "sito_blocca" });
   });
 
-  it("riconosce i siti che l'app ha già", async () => {
-    const fetcher = fakeFetcher({});
-    expect(await checkSite("https://ricette.giallozafferano.it/Tiramisu.html", { fetcher })).toMatchObject({
-      ok: false,
-      reason: "gia_presente",
-      message: "GialloZafferano è già fra i siti dell'app.",
-    });
-    expect(fetcher.calls).toEqual([]);
-  });
-
   it("non va sulla rete di casa", async () => {
     expect(await checkSite("http://192.168.1.50", { fetcher: fakeFetcher({}) })).toMatchObject({ ok: false, reason: "indirizzo_privato" });
   });

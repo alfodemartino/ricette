@@ -1,7 +1,7 @@
 import { SkeletonPage, SkeletonRows } from "@/components/Skeletons";
 import { Card, Skeleton } from "@/components/ui";
 
-/** I siti mentre arrivano: titoli e casella veri, elenco grigio. */
+/** I siti mentre arrivano: titoli e casella veri, elenchi grigi. */
 export default function Loading() {
   return (
     <SkeletonPage className="space-y-6">
@@ -12,8 +12,11 @@ export default function Loading() {
       <Card title="Aggiungi un sito">
         <Skeleton className="h-11 w-full rounded-control" />
       </Card>
-      <Card title="Siti" flush>
-        <SkeletonRows count={7} />
+      <Card title="Siti della famiglia" flush>
+        <SkeletonRows count={3} />
+      </Card>
+      <Card title="Siti già provati" flush>
+        <SkeletonRows count={4} />
       </Card>
     </SkeletonPage>
   );

@@ -100,18 +100,19 @@ stesso controllo.
 La ricerca sui siti (`src/lib/import/sites.ts`) scarica i risultati e tiene
 solo le ricette i cui dati schema.org contengono davvero gli ingredienti: i
 siti cercano parole, non ingredienti. Un sito è fatto di dati
-(`RecipeSiteConfig`: dove si cerca, dove stanno i link), sia quelli dell'app
-in `BUILT_IN_SITES` sia quelli che una famiglia aggiunge (tabella
-`RecipeSite`, sempre filtrata per `familyId`) dopo la verifica di
-`src/lib/import/site-check.ts`. Un sito dell'app si aggiunge solo se ha i
-dati schema.org e il suo robots.txt non vieta la ricerca che si usa, con la
-sua pagina di risultati scritta a mano in `__fixtures__/` e un test. Tutto
-passa da `safeFetch`, e dai risultati si arriva sempre all'import con il
-controllo dei doppioni: la ricerca non salva niente.
+(`RecipeSiteConfig`: dove si cerca, dove stanno i link). I siti sono tutti
+della famiglia (tabella `RecipeSite`, sempre filtrata per `familyId`) e una
+famiglia nuova parte senza: nessun sito è predefinito. Li aggiunge fra i
+già provati del catalogo `KNOWN_SITES`, la cui configurazione vale sempre
+grazie a `catalogId`, o con un indirizzo che passa dalla verifica di
+`src/lib/import/site-check.ts`. Un sito entra nel catalogo solo se ha i dati
+schema.org e il suo robots.txt non vieta la ricerca che si usa, con la sua
+pagina di risultati scritta a mano in `__fixtures__/` e un test. Tutto passa
+da `safeFetch`, e dai risultati si arriva sempre all'import con il controllo
+dei doppioni: la ricerca non salva niente.
 
-La famiglia spegne qualsiasi sito, anche quelli dell'app
-(`Family.disabledSites`), o lo toglie (`Family.hiddenSites` per quelli
-dell'app), e li riaccende o rimette. Le azioni sui siti restituiscono
+La famiglia spegne un sito (`RecipeSite.enabled`) o lo toglie (si
+cancella), e lo riaccende o riaggiunge. Le azioni sui siti restituiscono
 l'elenco aggiornato e non chiamano `revalidatePath`: con la pagina da
 ricostruire dopo l'azione, in produzione l'attesa del pulsante non si
 chiudeva più.

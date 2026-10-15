@@ -2,19 +2,20 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { parseWanted } from "@/lib/cook-with";
 import { fakeFetcher, fixture } from "./__fixtures__/fake-fetcher";
 import {
-  BUILT_IN_SITES,
   clearSiteCache,
+  findKnownSite,
+  KNOWN_SITES,
+  knownSitesToSuggest,
   resultLinks,
   sameSite,
   searchSite,
   searchUrlFor,
-  splitBuiltInSites,
   type RecipeSiteConfig,
 } from "./sites";
 import { ImportError } from "./url";
 
 function site(id: string): RecipeSiteConfig {
-  return BUILT_IN_SITES.find((entry) => entry.id === id)!;
+  return KNOWN_SITES.find((entry) => entry.id === id)!;
 }
 
 const BLOG: RecipeSiteConfig = {
@@ -25,7 +26,6 @@ const BLOG: RecipeSiteConfig = {
   searchUrl: "https://www.blogdiprova.it/wp-json/wp/v2/search?search={q}&per_page=10&type=post",
   linkSelector: null,
   linkPrefix: "/ricetta/",
-  builtIn: false,
 };
 
 beforeEach(() => clearSiteCache());
@@ -44,16 +44,25 @@ describe("searchUrlFor", () => {
   });
 });
 
-describe("splitBuiltInSites", () => {
-  it("separa i siti tolti dalla famiglia, nell'ordine dell'app", () => {
-    const { active, removed } = splitBuiltInSites(["misya", "giallozafferano", "sito-che-non-esiste-piu"]);
-    expect(removed.map((entry) => entry.id)).toEqual(["giallozafferano", "misya"]);
-    expect(active).toHaveLength(BUILT_IN_SITES.length - 2);
-    expect(active.some((entry) => entry.id === "misya")).toBe(false);
+describe("siti già provati", () => {
+  it("si riconoscono dall'indirizzo, sottodomini compresi", () => {
+    expect(findKnownSite("ricette.giallozafferano.it")?.id).toBe("giallozafferano");
+    expect(findKnownSite("misya.info")?.id).toBe("misya");
+    expect(findKnownSite("www.blogdiprova.it")).toBeNull();
+    expect(findKnownSite("")).toBeNull();
   });
 
-  it("senza siti tolti sono tutti in uso", () => {
-    expect(splitBuiltInSites([])).toEqual({ active: BUILT_IN_SITES, removed: [] });
+  it("si propongono finché la famiglia non li ha, dal catalogo o dall'indirizzo", () => {
+    const suggested = knownSitesToSuggest([
+      { host: "www.giallozafferano.it", catalogId: "giallozafferano" },
+      { host: "misya.info", catalogId: null },
+      { host: "www.blogdiprova.it", catalogId: null },
+    ]);
+    expect(suggested.map((entry) => entry.id)).toEqual(KNOWN_SITES.map((entry) => entry.id).filter((id) => id !== "giallozafferano" && id !== "misya"));
+  });
+
+  it("a una famiglia nuova si propongono tutti", () => {
+    expect(knownSitesToSuggest([])).toEqual(KNOWN_SITES);
   });
 });
 

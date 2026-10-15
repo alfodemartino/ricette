@@ -1,65 +1,65 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addSiteAction, removeSiteAction, restoreSiteAction, setSiteEnabledAction, type SitesState } from "@/app/actions/cook-with";
+import {
+  addKnownSiteAction,
+  addSiteAction,
+  removeSiteAction,
+  setSiteEnabledAction,
+  type SitesState,
+} from "@/app/actions/cook-with";
 import { useLoadingWhile } from "@/components/LoadingOverlay";
 import { Alert, buttonClass, Card, Input, Switch } from "@/components/ui";
 import type { SiteListItem, SitesOverview } from "@/lib/family-sites";
 
 const dateFormat = new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeZone: "Europe/Rome" });
 
+const FAILED = "Qualcosa è andato storto: ricarica la pagina e riprova.";
+
 /**
- * Una riga dell'elenco. I siti in elenco hanno l'interruttore (`onToggle`):
- * spento, il sito resta ma la ricerca non lo usa, e il nome si fa grigio.
+ * Un sito della famiglia: interruttore e «Togli». Spento, il sito resta ma la
+ * ricerca non lo usa, e il nome si fa grigio.
  */
 function SiteRow({
   site,
-  action,
-  label,
   busy,
-  onClick,
+  onRemove,
   onToggle,
 }: {
   site: SiteListItem;
-  action: "danger" | "ghost";
-  label: string;
   busy: boolean;
-  onClick: () => void;
-  onToggle?: (enabled: boolean) => void;
+  onRemove: () => void;
+  onToggle: (enabled: boolean) => void;
 }) {
-  const detail = site.builtIn
-    ? `${site.host} · dell'app`
-    : `${site.host} · aggiunto ${site.addedBy ? `da ${site.addedBy} ` : ""}${site.addedAt ? `il ${dateFormat.format(site.addedAt)}` : ""}`;
-  const off = onToggle && !site.enabled;
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-2.5">
       <div className="min-w-0">
-        <p className={`truncate text-[15px] font-medium ${off ? "text-label-secondary" : ""}`}>{site.name}</p>
+        <p className={`truncate text-[15px] font-medium ${site.enabled ? "" : "text-label-secondary"}`}>{site.name}</p>
         <p className="truncate text-[12px] text-label-secondary">
-          {off ? "Spento · " : ""}
-          {detail}
+          {site.enabled ? "" : "Spento · "}
+          {site.host} · aggiunto {site.addedBy ? `da ${site.addedBy} ` : ""}il {dateFormat.format(site.addedAt)}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <button
           type="button"
-          onClick={onClick}
+          onClick={onRemove}
           disabled={busy}
-          aria-label={`${label} ${site.name}`}
-          className={buttonClass(action, "", "sm")}
+          aria-label={`Togli ${site.name}`}
+          className={buttonClass("danger", "", "sm")}
         >
-          {label}
+          Togli
         </button>
-        {onToggle && <Switch checked={site.enabled} onChange={onToggle} label={`Cerca su ${site.name}`} />}
+        <Switch checked={site.enabled} onChange={onToggle} label={`Cerca su ${site.name}`} />
       </div>
     </li>
   );
 }
 
 /**
- * La gestione dei siti di «Cosa cucino con…»: aggiungerne uno dopo la
- * verifica, accendere e spegnere quelli in elenco, toglierli (anche quelli
- * dell'app) e rimettere quelli dell'app tolti.
+ * La gestione dei siti di «Cosa cucino con…». La famiglia parte senza siti:
+ * li aggiunge fra quelli già provati, con un tocco, o scrivendo un indirizzo,
+ * che l'app prova prima di accettarlo. Poi li accende, li spegne e li toglie.
  *
  * Ogni azione restituisce l'elenco aggiornato, che si mostra da qui: la pagina
  * non si ricostruisce dopo l'azione, e l'attesa finisce quando arriva la
@@ -71,7 +71,8 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
   const [url, setUrl] = useState("");
   const [adding, startAdding] = useTransition();
   const [changing, startChanging] = useTransition();
-  const full = sites.familyCount >= maxFamilySites;
+  const full = sites.sites.length >= maxFamilySites;
+  const busy = changing || adding;
 
   useLoadingWhile(changing);
 
@@ -90,7 +91,17 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
         // Un sito rifiutato resta scritto, da correggere; uno aggiunto lascia la casella vuota.
         if (!result.error) setUrl("");
       } catch {
-        setMessage({ error: "Qualcosa è andato storto: ricarica la pagina e riprova." });
+        setMessage({ error: FAILED });
+      }
+    });
+  }
+
+  function change(task: () => Promise<SitesState>) {
+    startChanging(async () => {
+      try {
+        apply(await task());
+      } catch {
+        setMessage({ error: FAILED });
       }
     });
   }
@@ -104,24 +115,14 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
 
   function setEnabled(id: string, enabled: boolean) {
     const flip = (value: boolean) =>
-      setSites((current) => ({ ...current, active: current.active.map((site) => (site.id === id ? { ...site, enabled: value } : site)) }));
+      setSites((current) => ({ ...current, sites: current.sites.map((site) => (site.id === id ? { ...site, enabled: value } : site)) }));
     flip(enabled);
     startToggling(async () => {
       try {
         apply(await setSiteEnabledAction(id, enabled));
       } catch {
         flip(!enabled);
-        setMessage({ error: "Qualcosa è andato storto: ricarica la pagina e riprova." });
-      }
-    });
-  }
-
-  function change(task: () => Promise<SitesState>) {
-    startChanging(async () => {
-      try {
-        apply(await task());
-      } catch {
-        setMessage({ error: "Qualcosa è andato storto: ricarica la pagina e riprova." });
+        setMessage({ error: FAILED });
       }
     });
   }
@@ -132,7 +133,7 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
         title="Aggiungi un sito"
         description={
           full
-            ? `La famiglia ha già aggiunto ${maxFamilySites} siti: per aggiungerne un altro togline uno.`
+            ? `La famiglia ha già ${maxFamilySites} siti: per aggiungerne un altro togline uno.`
             : "Di solito vanno bene i siti fatti con WordPress. La prova richiede qualche secondo."
         }
       >
@@ -140,7 +141,8 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
           {message.error && <Alert tone="error">{message.error}</Alert>}
           {message.added && (
             <Alert tone="success">
-              {message.added.name} aggiunto. Ricette trovate per prova: {message.added.samples.join(", ")}.
+              {message.added.name} aggiunto.
+              {message.added.samples.length > 0 && ` Ricette trovate per prova: ${message.added.samples.join(", ")}.`}
             </Alert>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -168,24 +170,22 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
       </Card>
 
       <Card
-        title="Siti"
+        title="Siti della famiglia"
         description="Con l'interruttore spento «Cerca anche online» salta il sito, che resta qui. «Togli» lo toglie dall'elenco."
         flush
       >
-        {sites.active.length === 0 ? (
+        {sites.sites.length === 0 ? (
           <p className="px-4 py-6 text-center text-[15px] text-label-secondary">
-            Nessun sito: la ricerca online è spenta finché non ne aggiungi o rimetti uno.
+            Ancora nessun sito: la ricerca online parte quando ne aggiungi uno, qui sopra o fra quelli già provati.
           </p>
         ) : (
           <ul className="divide-y divide-separator">
-            {sites.active.map((site) => (
+            {sites.sites.map((site) => (
               <SiteRow
                 key={site.id}
                 site={site}
-                action="danger"
-                label="Togli"
-                busy={changing || adding}
-                onClick={() => change(() => removeSiteAction(site.id))}
+                busy={busy}
+                onRemove={() => change(() => removeSiteAction(site.id))}
                 onToggle={(enabled) => setEnabled(site.id, enabled)}
               />
             ))}
@@ -193,18 +193,29 @@ export function SitesManager({ initial, maxFamilySites }: { initial: SitesOvervi
         )}
       </Card>
 
-      {sites.removed.length > 0 && (
-        <Card title="Tolti" description="I siti dell'app che avete tolto. Quelli aggiunti dalla famiglia, tolti, si cancellano." flush>
+      {sites.suggestions.length > 0 && (
+        <Card
+          title="Siti già provati"
+          description="Verificati per l'app: hanno i dati che l'import sa leggere e una ricerca che il sito permette. Si aggiungono con un tocco."
+          flush
+        >
           <ul className="divide-y divide-separator">
-            {sites.removed.map((site) => (
-              <SiteRow
-                key={site.id}
-                site={site}
-                action="ghost"
-                label="Rimetti"
-                busy={changing || adding}
-                onClick={() => change(() => restoreSiteAction(site.id))}
-              />
+            {sites.suggestions.map((site) => (
+              <li key={site.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-medium">{site.name}</p>
+                  <p className="truncate text-[12px] text-label-secondary">{site.host}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => change(() => addKnownSiteAction(site.id))}
+                  disabled={busy || full}
+                  aria-label={`Aggiungi ${site.name}`}
+                  className={buttonClass("secondary", "shrink-0", "sm")}
+                >
+                  Aggiungi
+                </button>
+              </li>
             ))}
           </ul>
         </Card>

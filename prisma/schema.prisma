@@ -91,16 +91,10 @@ model VerificationToken {
 /// Le ricette appartengono alla famiglia, non a chi le ha scritte: se un
 /// membro esce, le sue ricette restano a chi rimane.
 model Family {
-  id            String   @id @default(cuid())
-  name          String
-  inviteCode    String   @unique
-  createdAt     DateTime @default(now())
-  /// I siti dell'app (`BUILT_IN_SITES`, per id) che la famiglia ha tolto da
-  /// «Cosa cucino con…». Si rimettono quando si vuole.
-  hiddenSites   String[] @default([])
-  /// I siti (dell'app o della famiglia, per id) che restano nell'elenco ma
-  /// con l'interruttore spento: la ricerca online non li usa.
-  disabledSites String[] @default([])
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
 
   members User[]
   recipes Recipe[]
@@ -231,10 +225,11 @@ enum RecipeSiteKind {
   HTML
 }
 
-/// Un sito di ricette aggiunto dalla famiglia, oltre a quelli dell'app
-/// (`src/lib/import/sites.ts`). Entra solo dopo la verifica di
-/// `src/lib/import/site-check.ts`: robots.txt, ricerca leggibile e ricette
-/// con i dati schema.org.
+/// Un sito di ricette in cui la famiglia cerca. Ogni famiglia ha i suoi, e
+/// parte senza: li aggiunge fra quelli già provati (`KNOWN_SITES` in
+/// `src/lib/import/sites.ts`, allora c'è `catalogId`) o con un indirizzo, che
+/// entra solo dopo la verifica di `src/lib/import/site-check.ts`: robots.txt,
+/// ricerca leggibile e ricette con i dati schema.org.
 model RecipeSite {
   id           String         @id @default(cuid())
   familyId     String
@@ -248,6 +243,11 @@ model RecipeSite {
   linkSelector String?
   /// Il pezzo iniziale del percorso delle ricette («/ricetta/»), se ce n'è uno.
   linkPrefix   String?
+  /// Uno dei siti già provati (`KNOWN_SITES`): la configurazione si prende da
+  /// lì, così una correzione nel codice vale anche per i siti già aggiunti.
+  catalogId    String?
+  /// Spento: il sito resta nell'elenco, ma la ricerca online lo salta.
+  enabled      Boolean        @default(true)
   createdById  String?
   createdAt    DateTime       @default(now())
 
