@@ -188,9 +188,12 @@ quando serve.
 
 ## Cosa cucino con…
 
-Dall'elenco, «Cosa cucino con quello che ho?» apre `/ricette/cosa-cucino`. Si scrivono
-gli ingredienti separati da virgole, con o senza quantità («300 g zucchine,
-ricotta, menta»), e la pagina mostra le ricette del ricettario in due gruppi:
+Sopra la casella di ricerca dell'elenco, la scelta «Per nome | Con quello che
+ho» porta a `/ricette/cosa-cucino`; ci si arriva anche scrivendo nella ricerca
+un elenco separato da virgole, che propone «Cerca le ricette con questi
+ingredienti». Si scrivono gli ingredienti separati da virgole, con o senza
+quantità («300 g zucchine, ricotta, menta»), e la pagina mostra le ricette del
+ricettario in due gruppi:
 **con tutti gli ingredienti** e **ne manca uno**, con scritto quale. Sotto ogni
 ricetta compare cosa serve in più e, se si è scritta una quantità, per quanti
 basta («Basta per circa 3 persone»). Aprendola, la ricetta è già ricalcolata
