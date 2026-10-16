@@ -1,10 +1,13 @@
 import Form from "next/form";
+import { AllRequiredSwitch } from "@/components/AllRequiredSwitch";
 import { CookWithOnline } from "@/components/CookWithOnline";
 import { MatchFacts } from "@/components/MatchFacts";
 import { SearchModes } from "@/components/SearchModes";
 import { RecipeCard } from "@/components/RecipeCard";
 import { Alert, buttonClass, EmptyState, Input } from "@/components/ui";
 import {
+  ALL_REQUIRED_PARAM,
+  allRequiredFrom,
   amountHint,
   countableWanted,
   limitingAmount,
@@ -70,8 +73,10 @@ export default async function CookWithPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const viewer = await requireFamilyViewer();
-  const raw = (await searchParams).ingredienti;
+  const params = await searchParams;
+  const raw = params.ingredienti;
   const text = (Array.isArray(raw) ? raw[0] : raw)?.trim().slice(0, MAX_WANTED_TEXT) ?? "";
+  const allRequired = allRequiredFrom(params[ALL_REQUIRED_PARAM]);
   const wanted = parseWanted(text);
   const countable = countableWanted(wanted);
 
@@ -82,6 +87,7 @@ export default async function CookWithPage({
   const ranked = rankMatches(
     recipes.map((recipe) => ({ ...recipe, match: matchRecipe(wanted, recipe.ingredients) })),
     wanted,
+    { allRequired },
   );
   const found = ranked.all.length + ranked.almost.length;
 
@@ -98,20 +104,24 @@ export default async function CookWithPage({
       {/* Al posto di «‹ Ricette»: le due ricerche sono allo stesso livello. */}
       <SearchModes active="ingredienti" />
 
-      <Form action="/ricette/cosa-cucino" role="search" className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          name="ingredienti"
-          defaultValue={text}
-          key={text}
-          maxLength={MAX_WANTED_TEXT}
-          placeholder="300 g zucchine, ricotta, menta"
-          aria-label="Gli ingredienti che hai"
-          autoComplete="off"
-          enterKeyHint="search"
-        />
-        <button type="submit" className={buttonClass("primary", "shrink-0")}>
-          Cerca
-        </button>
+      <Form action="/ricette/cosa-cucino" role="search" className="space-y-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            name="ingredienti"
+            defaultValue={text}
+            key={text}
+            maxLength={MAX_WANTED_TEXT}
+            placeholder="300 g zucchine, ricotta, menta"
+            aria-label="Gli ingredienti che hai"
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+          <button type="submit" className={buttonClass("primary", "shrink-0")}>
+            Cerca
+          </button>
+        </div>
+        {/* La chiave lo rimette d'accordo con l'indirizzo, anche tornando indietro. */}
+        <AllRequiredSwitch key={String(allRequired)} text={text} initial={allRequired} />
       </Form>
 
       {text && countable === 0 && (
@@ -122,7 +132,9 @@ export default async function CookWithPage({
         <>
           {found === 0 ? (
             <div className="rounded-card bg-surface">
-              <EmptyState>Nel ricettario non c&apos;è niente con questi ingredienti.</EmptyState>
+              <EmptyState>
+              Nel ricettario non c&apos;è niente con {allRequired ? "tutti questi" : "questi"} ingredienti.
+            </EmptyState>
             </div>
           ) : (
             <div className="space-y-6">
@@ -135,6 +147,7 @@ export default async function CookWithPage({
           <CookWithOnline
             key={text}
             text={text}
+            allRequired={allRequired}
             sites={sites.map(({ id, name }) => ({ id, name }))}
             prominent={ranked.all.length === 0}
           />
