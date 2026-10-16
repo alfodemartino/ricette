@@ -11,7 +11,10 @@ export default function Loading() {
         <Skeleton className="mt-1 h-3.5 w-80 max-w-full" />
       </header>
       <SearchModes active="ingredienti" />
-      <Skeleton className="h-11 w-full rounded-control" />
+      <div className="space-y-2">
+        <Skeleton className="h-11 w-full rounded-control" />
+        <Skeleton className="h-[47px] w-full rounded-card sm:max-w-sm" />
+      </div>
       <SkeletonRecipeCards count={3} />
     </SkeletonPage>
   );

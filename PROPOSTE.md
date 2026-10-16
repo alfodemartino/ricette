@@ -130,6 +130,8 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
   partire dagli ingredienti che si hanno. Le decisioni prese:
   - prima le ricette con tutti gli ingredienti scritti, poi quelle a cui ne
     manca uno, con scritto quale; sale, pepe, olio e acqua non contano;
+    l'interruttore «Solo con tutti gli ingredienti» (`?tutti=1`) lascia solo
+    le prime, anche sui siti, filtrando i risultati già scaricati;
   - il confronto è fra radici di parole (`src/lib/cook-with.ts`):
     singolare e plurale, diminutivi, senza gli aggettivi più comuni; niente
     sinonimi (grana e parmigiano restano diversi);

@@ -93,7 +93,7 @@ function WebResultRow({ result, siteName }: { result: WebResult; siteName: strin
   );
 }
 
-function SiteResults({ site, state }: { site: Site; state: SiteState }) {
+function SiteResults({ site, state, allRequired }: { site: Site; state: SiteState; allRequired: boolean }) {
   if (state === "loading") {
     return (
       <section aria-busy="true" className="rounded-card bg-surface">
@@ -111,11 +111,11 @@ function SiteResults({ site, state }: { site: Site; state: SiteState }) {
   if (!state.ok) {
     return <p className="px-1 text-[13px] text-label-secondary">{state.error}</p>;
   }
-  const results = [...state.all, ...state.almost];
+  const results = allRequired ? state.all : [...state.all, ...state.almost];
   if (results.length === 0) {
     return (
       <p className="px-1 text-[13px] text-label-secondary">
-        {site.name}: niente con questi ingredienti
+        {site.name}: niente con {allRequired ? "tutti questi" : "questi"} ingredienti
         {state.checked > 0 && ` fra le prime ${state.checked} ricette trovate`}.
       </p>
     );
@@ -136,9 +136,20 @@ function SiteResults({ site, state }: { site: Site; state: SiteState }) {
  * La ricerca sui siti di ricette. Parte solo col pulsante: ogni ricerca sono
  * decine di pagine da scaricare, e i risultati del ricettario non le
  * aspettano. Ogni sito si cerca per conto suo, così i risultati compaiono
- * man mano e un sito lento non trattiene gli altri.
+ * man mano e un sito lento non trattiene gli altri. «Solo con tutti gli
+ * ingredienti» filtra i risultati già arrivati: cambiarlo non rifà la ricerca.
  */
-export function CookWithOnline({ text, sites, prominent }: { text: string; sites: Site[]; prominent: boolean }) {
+export function CookWithOnline({
+  text,
+  allRequired,
+  sites,
+  prominent,
+}: {
+  text: string;
+  allRequired: boolean;
+  sites: Site[];
+  prominent: boolean;
+}) {
   const [off, setOff] = useState<string[]>([]);
   const [states, setStates] = useState<Record<string, SiteState>>({});
 
@@ -213,7 +224,7 @@ export function CookWithOnline({ text, sites, prominent }: { text: string; sites
       {shown.length > 0 && (
         <div className="space-y-3">
           {shown.map((site) => (
-            <SiteResults key={site.id} site={site} state={states[site.id]} />
+            <SiteResults key={site.id} site={site} state={states[site.id]} allRequired={allRequired} />
           ))}
         </div>
       )}

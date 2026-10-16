@@ -125,6 +125,18 @@ export function parseWanted(text: string): WantedIngredient[] {
   return result;
 }
 
+/**
+ * Il parametro dell'indirizzo che accende «Solo con tutti gli ingredienti»
+ * (`?tutti=1`): la scelta resta nell'indirizzo come gli ingredienti, così si
+ * ricarica e si torna indietro senza perderla.
+ */
+export const ALL_REQUIRED_PARAM = "tutti";
+
+/** Se il valore del parametro accende l'interruttore. */
+export function allRequiredFrom(value: string | string[] | undefined): boolean {
+  return (Array.isArray(value) ? value[0] : value) === "1";
+}
+
 /** Il testo con cui si rifà la ricerca: gli ingredienti, uno dopo l'altro. */
 export function wantedText(wanted: WantedIngredient[]): string {
   return wanted.map((item) => item.name.toLowerCase()).join(", ");
@@ -199,11 +211,13 @@ export function countableWanted(wanted: WantedIngredient[]): number {
  * Le ricette divise in due gruppi: quelle che usano tutto quello che si ha e,
  * con almeno due ingredienti scritti, quelle a cui ne manca uno. In ogni
  * gruppo prima le ricette che chiedono meno ingredienti in più, poi per
- * titolo. Le altre restano fuori.
+ * titolo. Le altre restano fuori. Con `allRequired` (l'interruttore «Solo con
+ * tutti gli ingredienti») il secondo gruppo resta vuoto.
  */
 export function rankMatches<T extends { title: string; match: RecipeMatch<RecipeIngredientLike> }>(
   items: T[],
   wanted: WantedIngredient[],
+  { allRequired = false }: { allRequired?: boolean } = {},
 ): { all: T[]; almost: T[] } {
   const countable = countableWanted(wanted);
   if (countable === 0) return { all: [], almost: [] };
@@ -212,7 +226,7 @@ export function rankMatches<T extends { title: string; match: RecipeMatch<Recipe
   const useful = items.filter((item) => item.match.matched.some((pair) => !isStaple(pair.wanted.name)));
   return {
     all: useful.filter((item) => item.match.missing.length === 0).sort(order),
-    almost: countable >= 2 ? useful.filter((item) => item.match.missing.length === 1).sort(order) : [],
+    almost: countable >= 2 && !allRequired ? useful.filter((item) => item.match.missing.length === 1).sort(order) : [],
   };
 }
 

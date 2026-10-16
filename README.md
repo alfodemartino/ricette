@@ -198,6 +198,9 @@ ricettario in due gruppi:
 ricetta compare cosa serve in più e, se si è scritta una quantità, per quanti
 basta («Basta per circa 3 persone»). Aprendola, la ricetta è già ricalcolata
 su quell'ingrediente. Sale, pepe, olio e acqua si danno per scontati.
+L'interruttore **Solo con tutti gli ingredienti**, sotto la casella, toglie il
+gruppo «ne manca uno», anche dai risultati dei siti; resta nell'indirizzo
+(`?tutti=1`), come gli ingredienti.
 
 Il confronto (`src/lib/cook-with.ts`) è fra parole e non fra testi:
 «zucchina» trova «Zucchine» e «pomodoro» i «Pomodorini», ma «olio» non trova

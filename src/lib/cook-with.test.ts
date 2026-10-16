@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  allRequiredFrom,
   amountHint,
   ingredientWords,
   isStaple,
@@ -151,11 +152,12 @@ describe("rankMatches", () => {
     { title: "Tiramisù", ingredients: [{ name: "Mascarpone", quantity: 500, unit: "g" }] },
   ];
 
-  function rank(text: string) {
+  function rank(text: string, allRequired = false) {
     const items = parseWanted(text);
     const ranked = rankMatches(
       recipes.map((recipe) => ({ title: recipe.title, match: matchRecipe<RecipeIngredientLike>(items, recipe.ingredients) })),
       items,
+      { allRequired },
     );
     return { all: ranked.all.map((item) => item.title), almost: ranked.almost.map((item) => item.title) };
   }
@@ -165,6 +167,14 @@ describe("rankMatches", () => {
       all: ["Pasta zucchine e ricotta", "Torta salata"],
       almost: ["Frittata di zucchine"],
     });
+  });
+
+  it("con «solo con tutti gli ingredienti» tiene solo le ricette che li usano tutti", () => {
+    expect(rank("zucchine, ricotta", true)).toEqual({
+      all: ["Pasta zucchine e ricotta", "Torta salata"],
+      almost: [],
+    });
+    expect(rank("zucchine, ricotta, uova", true)).toEqual({ all: ["Torta salata"], almost: [] });
   });
 
   it("con un ingrediente solo non c'è il gruppo «ne manca uno»", () => {
@@ -178,6 +188,16 @@ describe("rankMatches", () => {
   it("una ricetta che ha solo le basi in comune non conta", () => {
     // La pasta ha in comune solo l'olio: resta fuori.
     expect(rank("olio, mascarpone, uova").almost).toEqual(["Tiramisù", "Frittata di zucchine", "Torta salata"]);
+  });
+});
+
+describe("allRequiredFrom", () => {
+  it("accende l'interruttore solo con ?tutti=1", () => {
+    expect(allRequiredFrom("1")).toBe(true);
+    expect(allRequiredFrom(["1", "0"])).toBe(true);
+    expect(allRequiredFrom(undefined)).toBe(false);
+    expect(allRequiredFrom("0")).toBe(false);
+    expect(allRequiredFrom("")).toBe(false);
   });
 });
 
