@@ -27,7 +27,9 @@ export function AllRequiredSwitch({ text, initial }: { text: string; initial: bo
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-card bg-surface px-4 py-2 sm:max-w-sm">
+    // Sul telefono è una riga di impostazioni a tutta larghezza; da desktop un
+    // riquadro così largo resterebbe vuoto: interruttore e scritta, senza fondo.
+    <div className="flex items-center justify-between gap-3 rounded-card bg-surface px-4 py-2 sm:flex-row-reverse sm:justify-end sm:bg-transparent sm:px-1 sm:py-0">
       <span className="text-[15px]">Solo con tutti gli ingredienti</span>
       {checked && <input type="hidden" name={ALL_REQUIRED_PARAM} value="1" />}
       <Switch checked={checked} onChange={change} label="Solo con tutti gli ingredienti" disabled={pending} />
