@@ -74,6 +74,10 @@ Sono invarianti, non preferenze.
 - **Le quantità sono numeri**, così le porzioni le ricalcolano; «q.b.» e
   simili sono note, senza quantità. Come si leggono e come si mostrano lo
   decide `src/lib/ingredients.ts`.
+- **Le misure americane si convertono nei dati**, non a schermo, e prima di
+  salvare: nella bozza dell'import, in «Incolla elenco» o con il pulsante del
+  form (`src/lib/italian-units.ts`). Il resto dell'app vede solo grammi,
+  millilitri e gradi Celsius.
 
 La logica sta in `src/lib/` ed è pura dove può: lettura degli ingredienti,
 porzioni, ricerca, bozze, estrazione dalle pagine. Va coperta da test lì,

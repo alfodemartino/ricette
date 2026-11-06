@@ -1,7 +1,8 @@
 import { guessCategory, isCategory, type RecipeCategory } from "@/lib/categories";
-import { parseIngredientLine, parseQuantity, quantityInput, sectionHeading } from "@/lib/ingredients";
+import { normalizeUnit, parseIngredientLine, parseQuantity, quantityInput, sectionHeading } from "@/lib/ingredients";
 import { BIMBY_TAG, bimbyTitle, suggestedTags } from "@/lib/import/tags";
 import type { ImportedRecipe } from "@/lib/import/types";
+import { celsiusInText, toItalianUnits } from "@/lib/italian-units";
 import { uniqueTags } from "@/lib/tags";
 
 /**
@@ -84,9 +85,9 @@ function withHeadings<T extends { section: string | null }, R>(
   return rows;
 }
 
-/** Una riga letta da un testo (import o «Incolla elenco») come riga del form. */
+/** Una riga letta da un testo importato come riga del form, in unità italiane. */
 export function ingredientRowFromText(text: string): IngredientRow {
-  const parsed = parseIngredientLine(text);
+  const parsed = toItalianUnits(parseIngredientLine(text));
   return {
     kind: "item",
     quantity: quantityInput(parsed.quantity),
@@ -94,6 +95,37 @@ export function ingredientRowFromText(text: string): IngredientRow {
     name: parsed.name,
     note: parsed.note ?? "",
   };
+}
+
+/**
+ * Una riga del form in unità italiane; la stessa riga se non c'è niente da
+ * convertire. Serve alle ricette salvate prima che l'import convertisse e a
+ * quelle scritte a mano.
+ */
+export function italianIngredientRow<T extends IngredientRow>(row: T): T {
+  if (row.kind === "heading") return row;
+  const line = {
+    quantity: parseQuantity(row.quantity),
+    unit: normalizeUnit(row.unit) ?? (row.unit.trim() || null),
+    name: row.name,
+    note: row.note.trim() || null,
+  };
+  const converted = toItalianUnits(line);
+  if (converted === line) return row;
+  return {
+    ...row,
+    quantity: quantityInput(converted.quantity),
+    unit: converted.unit ?? "",
+    name: converted.name,
+    note: converted.note ?? "",
+  };
+}
+
+/** Una riga del procedimento con i gradi Celsius; la stessa riga se non ce n'è bisogno. */
+export function italianStepRow<T extends StepRow>(row: T): T {
+  if (row.kind === "heading") return row;
+  const text = celsiusInText(row.text);
+  return text === row.text ? row : { ...row, text };
 }
 
 /** La bozza di una ricetta importata da un link. */
@@ -132,7 +164,7 @@ export function draftFromImport(imported: ImportedRecipe): RecipeDraft {
     ingredients: ingredients.length > 0 ? withHeadings(ingredients, (item) => ingredientRowFromText(item.text)) : [emptyIngredient()],
     steps:
       imported.steps.length > 0
-        ? withHeadings(imported.steps, (step) => ({ kind: "item" as const, text: step.text }))
+        ? withHeadings(imported.steps, (step) => ({ kind: "item" as const, text: celsiusInText(step.text) }))
         : [emptyStep()],
     importedImageUrl: imported.imageUrl ?? "",
   };
@@ -323,7 +355,7 @@ export function stepRowsFromText(text: string): StepRow[] {
       .replace(/^\d{1,2}\s*[.)\-–]\s*/, "")
       .replace(/^[-•*]\s*/, "")
       .trim();
-    if (clean) rows.push({ kind: "item", text: clean });
+    if (clean) rows.push({ kind: "item", text: celsiusInText(clean) });
   }
   return rows;
 }

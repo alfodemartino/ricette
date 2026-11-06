@@ -9,9 +9,12 @@ import type { SaveRecipeState } from "@/app/actions/recipes";
 import { emptyActionState } from "@/lib/action-state";
 import { CATEGORIES } from "@/lib/categories";
 import { COMMON_UNITS, parseIngredientList, quantityInput } from "@/lib/ingredients";
+import { toItalianUnits } from "@/lib/italian-units";
 import {
   emptyIngredient,
   emptyStep,
+  italianIngredientRow,
+  italianStepRow,
   MAX_TITLE_LENGTH,
   stepRowsFromText,
   type IngredientRow,
@@ -103,9 +106,12 @@ function RowTools({
 function IngredientsEditor({
   rows,
   setRows,
+  onConvert,
 }: {
   rows: WithUid<IngredientRow>[];
   setRows: (update: (rows: WithUid<IngredientRow>[]) => WithUid<IngredientRow>[]) => void;
+  /** Porta la ricetta in unità italiane; manca se non c'è niente da convertire. */
+  onConvert?: () => void;
 }) {
   const [pasting, setPasting] = useState(false);
   const [pasted, setPasted] = useState("");
@@ -202,6 +208,11 @@ function IngredientsEditor({
         <button type="button" className={buttonClass("ghost", "", "sm")} onClick={() => setPasting((open) => !open)}>
           Incolla elenco
         </button>
+        {onConvert && (
+          <button type="button" className={buttonClass("ghost", "", "sm")} onClick={onConvert}>
+            Converti in unità italiane
+          </button>
+        )}
       </div>
 
       {pasting && (
@@ -225,8 +236,9 @@ function IngredientsEditor({
                 for (const item of parsed) {
                   if (item.section !== section && item.section) added.push(withUid({ kind: "heading", title: item.section }));
                   section = item.section;
+                  const line = toItalianUnits(item);
                   added.push(
-                    withUid({ kind: "item", quantity: quantityInput(item.quantity), unit: item.unit ?? "", name: item.name, note: item.note ?? "" }),
+                    withUid({ kind: "item", quantity: quantityInput(line.quantity), unit: line.unit ?? "", name: line.name, note: line.note ?? "" }),
                   );
                 }
                 setRows((current) => [...withoutTrailingEmpty(current, isEmptyIngredient), ...added]);
@@ -543,6 +555,7 @@ export function RecipeForm({
   const [ingredients, setIngredients] = useState(() => initial.ingredients.map(withUid));
   const [steps, setSteps] = useState(() => initial.steps.map(withUid));
   const errorRef = useRef<HTMLDivElement>(null);
+  const canConvert = ingredients.some((row) => italianIngredientRow(row) !== row) || steps.some((row) => italianStepRow(row) !== row);
 
   const set = <K extends keyof typeof fields>(key: K, value: (typeof fields)[K]) => setFields((current) => ({ ...current, [key]: value }));
 
@@ -619,7 +632,18 @@ export function RecipeForm({
         title="Ingredienti"
         description={fields.servings ? `Le quantità per ${fields.servings} ${fields.servings === "1" ? "persona" : "persone"}. Accetta anche 1/2 e 1,5.` : "Accetta anche 1/2 e 1,5."}
       >
-        <IngredientsEditor rows={ingredients} setRows={setIngredients} />
+        <IngredientsEditor
+          rows={ingredients}
+          setRows={setIngredients}
+          onConvert={
+            canConvert
+              ? () => {
+                  setIngredients((current) => current.map(italianIngredientRow));
+                  setSteps((current) => current.map(italianStepRow));
+                }
+              : undefined
+          }
+        />
       </SectionCard>
 
       <SectionCard title="Procedimento">

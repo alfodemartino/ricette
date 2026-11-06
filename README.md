@@ -30,6 +30,10 @@ copie notturne.
   scritto in qualsiasi modo comune («200 g di farina», «Farina 00 200 g»,
   «2 spicchi d'aglio», «Sale q.b.») e diventa righe già divise; lo stesso per
   il procedimento, un passo per riga, numeri tolti.
+- **Misure americane convertite** — tazze, once e libbre di una ricetta
+  importata o incollata diventano grammi e millilitri, i gradi Fahrenheit
+  Celsius. Il peso di una tazza è una stima, segnata nella nota. Le ricette già
+  salvate si convertono con «Converti in unità italiane» nel form.
 - **Porzioni ricalcolabili** — nella ricetta si cambia il numero di persone e
   le quantità si ricalcolano come le scriverebbe una persona: grammi
   arrotondati come su una bilancia, uova e cucchiai in frazioni di casa (½, ⅓,
@@ -604,6 +608,7 @@ dump: `sudo ./backup-db.sh`, `docker compose stop app`, nuovo `PG_IMAGE` nel
 prisma/schema.prisma          Modello dati (famiglie, ricette, ingredienti, passi, tag, siti della ricerca)
 prisma/seed.ts                Dati di esempio
 src/lib/ingredients.ts        Lettura delle righe di ingredienti, unità, porzioni e formattazione
+src/lib/italian-units.ts      Dalle misure americane a grammi, millilitri e gradi Celsius
 src/lib/recipe-draft.ts       La bozza del form: da import, da database, verso il database
 src/lib/recipe-search.ts      Ricerca e filtri dell'elenco
 src/lib/cook-with.ts          «Cosa cucino con…»: ingredienti scritti, confronto, quanto basta

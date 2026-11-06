@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { ImportedRecipe } from "@/lib/import/types";
-import { DraftError, draftFromImport, draftFromRecipe, draftToData, emptyDraft, type RecipeDraft } from "./recipe-draft";
+import {
+  DraftError,
+  draftFromImport,
+  draftFromRecipe,
+  draftToData,
+  emptyDraft,
+  italianIngredientRow,
+  italianStepRow,
+  type IngredientRow,
+  type RecipeDraft,
+  type StepRow,
+} from "./recipe-draft";
 
 function draft(overrides: Partial<RecipeDraft>): RecipeDraft {
   return { ...emptyDraft(), title: "Ricetta", ...overrides };
@@ -130,5 +141,49 @@ describe("stepRowsFromText", () => {
       { kind: "heading", title: "Per la glassa" },
       { kind: "item", text: "Sciogliete lo zucchero." },
     ]);
+  });
+});
+
+describe("unità italiane", () => {
+  const imported: ImportedRecipe = {
+    title: "Flatbread",
+    description: null,
+    servings: 4,
+    prepMinutes: null,
+    cookMinutes: null,
+    category: null,
+    keywords: [],
+    ingredients: [
+      { section: null, text: "2 ½ cups all-purpose flour" },
+      { section: null, text: "7 oz Cherry Tomatoes" },
+    ],
+    steps: [{ section: null, text: "Preheat the oven to 400°F (200°C)." }],
+    imageUrl: null,
+    sourceUrl: "https://example.com/flatbread",
+    resolvedUrl: null,
+    sourceKind: "SITO",
+    rawText: null,
+    method: "dati-strutturati",
+  };
+
+  it("la bozza di un import nasce già convertita", () => {
+    const result = draftFromImport(imported);
+    expect(result.ingredients).toEqual([
+      { kind: "item", quantity: "315", unit: "g", name: "All-purpose flour", note: "stima: 1 tazza = 125 g" },
+      { kind: "item", quantity: "200", unit: "g", name: "Cherry Tomatoes", note: "" },
+    ]);
+    expect(result.steps).toEqual([{ kind: "item", text: "Preheat the oven to 200 °C." }]);
+  });
+
+  it("le righe di una ricetta già salvata si convertono tenendo il resto", () => {
+    const row = { kind: "item" as const, uid: "riga-1", quantity: "2,5", unit: "tazza", name: "All-purpose flour", note: "" };
+    expect(italianIngredientRow(row)).toEqual({ ...row, quantity: "315", unit: "g", note: "stima: 1 tazza = 125 g" });
+  });
+
+  it("le righe che non servono restano le stesse: il pulsante del form non compare", () => {
+    const ingredient: IngredientRow = { kind: "item", quantity: "200", unit: "g", name: "Farina", note: "" };
+    const step: StepRow = { kind: "item", text: "Infornate a 180 °C." };
+    expect(italianIngredientRow(ingredient)).toBe(ingredient);
+    expect(italianStepRow(step)).toBe(step);
   });
 });
