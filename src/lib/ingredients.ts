@@ -73,6 +73,13 @@ defineUnit("busta", "buste", false, []);
 defineUnit("panetto", "panetti", false, []);
 defineUnit("foglio", "fogli", false, []);
 defineUnit("rotolo", "rotoli", false, []);
+// Le misure americane: si leggono per poterle convertire (`italian-units.ts`).
+defineUnit("oz", "oz", false, ["ounce", "ounces", "oncia", "once"]);
+defineUnit("lb", "lb", false, ["lbs", "pound", "pounds", "libbra", "libbre"]);
+defineUnit("fl oz", "fl oz", false, ["fl. oz", "fluid ounce", "fluid ounces"]);
+defineUnit("pint", "pints", false, ["pinta", "pinte"]);
+defineUnit("quart", "quarts", false, []);
+defineUnit("gallon", "gallons", false, ["gallone", "galloni"]);
 
 /** Le unità da proporre nel form, nell'ordine in cui servono più spesso. */
 export const COMMON_UNITS = [

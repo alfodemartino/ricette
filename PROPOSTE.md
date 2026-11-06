@@ -105,8 +105,7 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
 9. **Storico delle modifiche** e **avviso di modifica contemporanea**
    (confronto di `updatedAt` al salvataggio).
 10. Più avanti: ricette collegate (ragù, besciamella, frolla), più foto per
-    ricetta, esportazione completa (JSON schema.org e foto), conversione
-    delle unità americane.
+    ricetta, esportazione completa (JSON schema.org e foto).
 
 ### Realizzate
 
@@ -126,6 +125,19 @@ Per la copia il ripiego c'è già e va riusato: `copyText`
   gruppo (patate segnate «1 kg», pesate «600 g»): accanto alla casella c'è la
   scelta fra grammi e chili, o millilitri e litri, e vale anche l'unità
   scritta nella casella.
+- **Conversione delle unità americane** (novembre 2026): tazze, once, libbre,
+  pinte e galloni diventano grammi e millilitri, i gradi Fahrenheit Celsius
+  (`src/lib/italian-units.ts`). Le decisioni prese:
+  - si convertono i dati e non quello che si mostra, quando nasce la bozza
+    (import, «Incolla elenco»): porzioni, ricalcolo e «Condividi» restano come
+    sono, e l'utente controlla il risultato nel form prima di salvare;
+  - le ricette già salvate e quelle scritte a mano si convertono con «Converti
+    in unità italiane» nel form, che compare solo se c'è qualcosa da convertire;
+  - una tazza diventa grammi per gli ingredienti di una piccola tabella, in
+    italiano e in inglese perché l'import non traduce i nomi, con la nota
+    «stima: 1 tazza = 125 g»; tutto il resto diventa millilitri;
+  - cucchiai e cucchiaini restano; non si convertono i pollici né le misure
+    fra parentesi, che restano nella nota («1 can (14 oz)»).
 - **Cosa cucino con…** (ottobre 2026): `/ricette/cosa-cucino` trova le ricette a
   partire dagli ingredienti che si hanno. Le decisioni prese:
   - prima le ricette con tutti gli ingredienti scritti, poi quelle a cui ne
